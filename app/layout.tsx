@@ -8,8 +8,8 @@ import { JetBrains_Mono } from "next/font/google"
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "URLito - Acortador de URLs",
-  description: "Acorta tus URLs por 24 horas",
+  title: "TermiLink - Acortador de URLs",
+  description: "Acorta tus URLs por 24 horas con estilo de terminal",
     generator: 'v0.dev'
 }
 

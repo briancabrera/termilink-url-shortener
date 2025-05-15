@@ -46,7 +46,7 @@ export default function Home() {
       <header className="container mx-auto mb-8">
         <div className="terminal-header">
           <span className="terminal-prompt">$</span>
-          <span className="terminal-command ml-2">cd ~/url-shortener</span>
+          <span className="terminal-command ml-2">cd ~/termilink</span>
         </div>
       </header>
 
@@ -59,10 +59,10 @@ export default function Home() {
                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
               </div>
-              <div className="text-xs text-gray-400">urlito.sh</div>
+              <div className="text-xs text-gray-400">termilink.sh</div>
             </div>
 
-            <h1 className="terminal-title mb-2">URLito</h1>
+            <h1 className="terminal-title mb-2">TermiLink</h1>
             <p className="terminal-subtitle">
               <span className="typing inline-block w-full">Acorta tus URLs por 24 horas</span>
             </p>
@@ -74,8 +74,8 @@ export default function Home() {
               </div>
               <div className="mt-2 p-4 bg-black/30 rounded border border-green-500/30">
                 <p className="text-gray-300 mb-2 text-lg">
-                  URLito es un acortador de URLs minimalista que te permite crear enlaces cortos que expiran
-                  automáticamente después de 24 horas.
+                  TermiLink es un acortador de URLs minimalista con estilo de terminal que te permite crear enlaces
+                  cortos que expiran automáticamente después de 24 horas.
                 </p>
                 <p className="text-gray-300 text-lg">
                   Perfecto para compartir enlaces temporales de forma rápida y segura.
@@ -121,7 +121,7 @@ export default function Home() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center">
             <span className="terminal-prompt">$</span>
-            <span className="text-gray-400 ml-2 text-lg">echo "© $(date +%Y) URLito"</span>
+            <span className="text-gray-400 ml-2 text-lg">echo "© $(date +%Y) TermiLink"</span>
           </div>
 
           <div className="flex items-center">
