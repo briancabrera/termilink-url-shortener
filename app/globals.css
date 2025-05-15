@@ -248,6 +248,34 @@ body {
   animation-delay: 300ms;
 }
 
+/* Estilos para el selector de idioma con banderas */
+.terminal-flag-button {
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.terminal-flag-button:hover {
+  background-color: rgba(77, 255, 77, 0.1);
+  border-color: rgba(77, 255, 77, 0.3);
+}
+
+.terminal-flag-button.active {
+  background-color: rgba(77, 255, 77, 0.15);
+  border-color: rgba(77, 255, 77, 0.5);
+  box-shadow: 0 0 5px rgba(77, 255, 77, 0.3);
+}
+
+.flag {
+  font-size: 1.2rem;
+}
+
 /* Estilos para los componentes de shadcn/ui */
 @layer base {
   :root {

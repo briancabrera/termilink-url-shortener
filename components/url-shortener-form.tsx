@@ -1,21 +1,32 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Copy } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { getDictionary } from "@/dictionaries"
 
-export function UrlShortenerForm() {
+export function UrlShortenerForm({ lang }: { lang: string }) {
   const [isLoading, setIsLoading] = useState(false)
   const [shortUrl, setShortUrl] = useState<string | null>(null)
   const [expiration, setExpiration] = useState<string | null>(null)
   const [isExistingUrl, setIsExistingUrl] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dictionary, setDictionary] = useState<any>(null)
   const { toast } = useToast()
+
+  useEffect(() => {
+    const loadDictionary = async () => {
+      const dict = await getDictionary(lang)
+      setDictionary(dict)
+    }
+    loadDictionary()
+  }, [lang])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!dictionary) return
+
     setIsLoading(true)
     setError(null)
     setShortUrl(null)
@@ -31,8 +42,9 @@ export function UrlShortenerForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept-Language": lang,
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, lang }),
       })
 
       // Verificar si la respuesta es HTML en lugar de JSON
@@ -57,7 +69,7 @@ export function UrlShortenerForm() {
         setIsExistingUrl(data.isExistingUrl)
 
         const toastMessage = data.isExistingUrl
-          ? "URL existente encontrada. Se ha extendido su tiempo de expiración."
+          ? dictionary.form.result.existingUrl
           : "Tu URL corta está lista para usar."
 
         toast({
@@ -87,29 +99,31 @@ export function UrlShortenerForm() {
   }
 
   function copyToClipboard() {
-    if (shortUrl) {
+    if (shortUrl && dictionary) {
       navigator.clipboard.writeText(shortUrl)
       toast({
-        title: "¡Copiado!",
-        description: "URL copiada al portapapeles.",
+        title: dictionary.form.result.copied,
+        description: dictionary.form.result.copiedDescription,
       })
     }
   }
+
+  if (!dictionary) return null
 
   return (
     <div className="mb-6">
       <div className="flex mb-3">
         <span className="terminal-prompt">$</span>
-        <span className="terminal-command ml-2">./acortar-url.sh</span>
+        <span className="terminal-command ml-2">{dictionary.form.command}</span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex flex-col space-y-2">
           <div className="flex items-center">
-            <span className="terminal-prompt mr-2">URL:</span>
+            <span className="terminal-prompt mr-2">{dictionary.form.urlLabel}</span>
             <input
               name="url"
-              placeholder="https://ejemplo-de-url-muy-larga.com/ruta/muy/larga"
+              placeholder={dictionary.form.urlPlaceholder}
               required
               type="url"
               disabled={isLoading}
@@ -119,14 +133,14 @@ export function UrlShortenerForm() {
         </div>
 
         <button type="submit" disabled={isLoading} className="terminal-button w-full">
-          {isLoading ? "Procesando..." : "Acortar URL"}
+          {isLoading ? dictionary.form.submitButton.loading : dictionary.form.submitButton.default}
         </button>
       </form>
 
       {error && (
         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded">
           <div className="flex">
-            <span className="text-red-500 mr-2">ERROR:</span>
+            <span className="text-red-500 mr-2">{dictionary.form.error.title}</span>
             <p className="text-red-400">{error}</p>
           </div>
         </div>
@@ -136,12 +150,12 @@ export function UrlShortenerForm() {
         <div className="mt-4 terminal-result">
           <div className="flex mb-3">
             <span className="terminal-prompt">$</span>
-            <span className="terminal-command ml-2">cat resultado.txt</span>
+            <span className="terminal-command ml-2">{dictionary.form.result.command}</span>
           </div>
 
           {isExistingUrl && (
             <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-yellow-400">
-              <p>URL ya existente. Se extendió su tiempo de expiración a 24 horas.</p>
+              <p>{dictionary.form.result.existingUrl}</p>
             </div>
           )}
 
@@ -149,10 +163,14 @@ export function UrlShortenerForm() {
             <div className="flex-1">
               <p className="text-cyan-400 mb-2 break-all text-xl">{shortUrl}</p>
               <p className="text-yellow-400 text-lg">
-                <span className="text-gray-400">Expira en:</span> {expiration}
+                <span className="text-gray-400">{dictionary.form.result.expiresIn}</span> {expiration}
               </p>
             </div>
-            <button onClick={copyToClipboard} className="p-2 hover:bg-green-500/20 rounded" aria-label="Copiar URL">
+            <button
+              onClick={copyToClipboard}
+              className="p-2 hover:bg-green-500/20 rounded"
+              aria-label={dictionary.form.result.copyButton}
+            >
               <Copy className="h-5 w-5 text-green-400" />
             </button>
           </div>

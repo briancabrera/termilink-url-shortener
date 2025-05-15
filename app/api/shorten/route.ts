@@ -3,9 +3,10 @@ import { generateShortId, generateUrlKey, isValidUrl, normalizeUrl } from "@/lib
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
+  let requestData // Declare requestData here
   try {
     // Verificar que la solicitud es JSON válido
-    let requestData
+
     try {
       requestData = await request.json()
     } catch (jsonError) {
@@ -16,16 +17,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { url } = requestData
-    console.log(`Solicitud para acortar URL: ${url}`)
+    const { url, lang = "es" } = requestData
+    console.log(`Solicitud para acortar URL: ${url}, Idioma: ${lang}`)
 
     // Validar la URL
     if (!url || !isValidUrl(url)) {
       console.log(`URL inválida: ${url}`)
-      return NextResponse.json(
-        { success: false, error: "URL inválida. Por favor, introduce una URL válida." },
-        { status: 400 },
-      )
+      const errorMessage =
+        lang === "es" ? "URL inválida. Por favor, introduce una URL válida." : "Invalid URL. Please enter a valid URL."
+      return NextResponse.json({ success: false, error: errorMessage }, { status: 400 })
     }
 
     // Normalizar la URL (asegurarse de que tiene protocolo)
@@ -91,10 +91,11 @@ export async function POST(request: NextRequest) {
 
       if (attempts >= maxAttempts) {
         console.error("No se pudo generar un ID único después de múltiples intentos")
-        return NextResponse.json(
-          { success: false, error: "No se pudo generar un ID único. Por favor, inténtalo de nuevo." },
-          { status: 500 },
-        )
+        const errorMessage =
+          lang === "es"
+            ? "No se pudo generar un ID único. Por favor, inténtalo de nuevo."
+            : "Could not generate a unique ID. Please try again."
+        return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
       }
 
       // Guardar la URL en Redis con un TTL de 24 horas (en segundos)
@@ -107,10 +108,11 @@ export async function POST(request: NextRequest) {
         console.log(`Nueva URL guardada. ID: ${shortId}, URL: ${normalizedUrl}, Key: ${urlKey}, TTL: ${ttl}s (24h)`)
       } catch (redisError) {
         console.error(`Error al guardar en Redis: ${redisError}`)
-        return NextResponse.json(
-          { success: false, error: "Error al guardar la URL. Por favor, inténtalo de nuevo." },
-          { status: 500 },
-        )
+        const errorMessage =
+          lang === "es"
+            ? "Error al guardar la URL. Por favor, inténtalo de nuevo."
+            : "Error saving the URL. Please try again."
+        return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
       }
     }
 
@@ -122,14 +124,19 @@ export async function POST(request: NextRequest) {
 
     // Calcular tiempo de expiración para mostrar al usuario
     const expirationDate = new Date(Date.now() + 60 * 60 * 24 * 1000) // 24 horas desde ahora
-    const expirationFormatted = expirationDate.toLocaleString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
+
+    // Formatear la fecha según el idioma
+    const locale = lang === "es" ? "es-ES" : "en-US"
+    const options = {
+      day: "2-digit" as const,
+      month: "2-digit" as const,
+      year: "numeric" as const,
+      hour: "2-digit" as const,
+      minute: "2-digit" as const,
+      hour12: locale === ("en-US" as boolean),
+    }
+
+    const expirationFormatted = expirationDate.toLocaleString(locale, options)
 
     return NextResponse.json({
       success: true,
@@ -143,9 +150,10 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error general al acortar URL:", error)
-    return NextResponse.json(
-      { success: false, error: "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo." },
-      { status: 500 },
-    )
+    const errorMessage =
+      requestData?.lang === "es"
+        ? "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo."
+        : "An error occurred while shortening the URL. Please try again."
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
