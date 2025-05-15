@@ -20,6 +20,11 @@ function getLocale(request: NextRequest): string {
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
+  // No procesar solicitudes a la API
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next()
+  }
+
   // Verificar si la solicitud es para redirección de URL corta
   if (pathname.startsWith("/go/")) {
     return NextResponse.next()

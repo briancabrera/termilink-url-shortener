@@ -47,19 +47,46 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
         body: JSON.stringify({ url, lang }),
       })
 
+      // Verificar si la respuesta es exitosa
+      if (!response.ok) {
+        console.error(`Error del servidor: ${response.status} ${response.statusText}`)
+
+        // Intentar obtener el texto del error
+        let errorText = ""
+        try {
+          errorText = await response.text()
+          console.error("Respuesta de error:", errorText)
+        } catch (textError) {
+          console.error("No se pudo leer el texto de error:", textError)
+        }
+
+        throw new Error(
+          `Error del servidor: ${response.status} ${response.statusText}. ${errorText.substring(0, 100)}...`,
+        )
+      }
+
       // Verificar si la respuesta es HTML en lugar de JSON
       const contentType = response.headers.get("content-type")
       if (contentType && contentType.includes("text/html")) {
         console.error("Recibida respuesta HTML en lugar de JSON")
-        throw new Error("Error de servidor: respuesta incorrecta")
+        throw new Error("Error de servidor: respuesta incorrecta (HTML recibido)")
       }
 
       // Intentar parsear la respuesta como JSON
       let data
       try {
-        data = await response.json()
-      } catch (jsonError) {
-        console.error("Error al parsear la respuesta JSON:", jsonError)
+        const text = await response.text()
+        console.log("Respuesta recibida:", text.substring(0, 200)) // Log para depuración
+
+        // Intentar parsear el texto como JSON
+        try {
+          data = JSON.parse(text)
+        } catch (jsonError) {
+          console.error("Error al parsear JSON:", jsonError)
+          throw new Error(`Respuesta no válida: ${text.substring(0, 100)}...`)
+        }
+      } catch (textError) {
+        console.error("Error al obtener texto de la respuesta:", textError)
         throw new Error("Error al procesar la respuesta del servidor")
       }
 
@@ -68,14 +95,16 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
         setExpiration(data.expiration?.formatted || "24 horas")
         setIsExistingUrl(data.isExistingUrl)
 
+        const toastTitle = data.isExistingUrl ? "URL existente encontrada" : "¡URL acortada con éxito!"
+
         const toastMessage = data.isExistingUrl
           ? dictionary.form.result.existingUrl
           : "Tu URL corta está lista para usar."
 
         toast({
-          title: "¡URL acortada con éxito!",
+          title: toastTitle,
           description: toastMessage,
-          variant: "success",
+          variant: data.isExistingUrl ? "default" : "success",
         })
       } else {
         setError(data.error || "Ocurrió un error al acortar la URL.")
@@ -85,12 +114,12 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
           variant: "destructive",
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al acortar URL:", error)
-      setError("Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.")
+      setError(error.message || "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.")
       toast({
         title: "Error",
-        description: "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.",
+        description: error.message || "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {

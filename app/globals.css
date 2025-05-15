@@ -276,6 +276,33 @@ body {
   font-size: 1.2rem;
 }
 
+/* Estilos para el toast */
+.toast-container {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  border: 1px solid var(--terminal-green);
+  color: var(--terminal-text);
+  padding: 1rem;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(77, 255, 77, 0.3);
+}
+
+.toast-title {
+  color: var(--terminal-cyan);
+  font-weight: bold;
+}
+
+.toast-description {
+  color: var(--terminal-text);
+}
+
+.toast-success {
+  border-color: var(--terminal-green);
+}
+
+.toast-error {
+  border-color: var(--terminal-red);
+}
+
 /* Estilos para los componentes de shadcn/ui */
 @layer base {
   :root {

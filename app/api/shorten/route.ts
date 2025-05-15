@@ -3,10 +3,9 @@ import { generateShortId, generateUrlKey, isValidUrl, normalizeUrl } from "@/lib
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
-  let requestData // Declare requestData here
+  let requestData
   try {
     // Verificar que la solicitud es JSON válido
-
     try {
       requestData = await request.json()
     } catch (jsonError) {
@@ -37,34 +36,48 @@ export async function POST(request: NextRequest) {
 
     // Comprobar si esta URL ya existe en la base de datos
     let shortId: string | null = null
+    let isExistingUrl = false
+
     try {
-      shortId = await redis.get(urlKey)
-      console.log(`Comprobando si la URL existe. Key: ${urlKey}, Result: ${shortId}`)
+      // Verificar si la URL existe en la base de datos
+      const exists = await redis.exists(urlKey)
+      console.log(`Comprobando si la URL existe. Key: ${urlKey}, Exists: ${exists}`)
+
+      if (exists) {
+        // Si existe, obtener el ID
+        shortId = await redis.get(urlKey)
+        console.log(`URL existente encontrada con ID: ${shortId}`)
+
+        // Verificar que el ID también existe (podría haber expirado)
+        const idExists = await redis.exists(shortId)
+
+        if (idExists) {
+          isExistingUrl = true
+          console.log(`ID ${shortId} existe, es una URL existente válida`)
+        } else {
+          console.log(`ID ${shortId} no existe, aunque la clave URL sí. Creando nuevo ID.`)
+          shortId = null // Forzar la creación de un nuevo ID
+        }
+      } else {
+        console.log(`URL no encontrada en la base de datos. Es nueva.`)
+      }
     } catch (lookupError) {
       console.error(`Error al buscar URL existente: ${lookupError}`)
       // Continuamos con un nuevo ID si hay error
     }
 
     // Si la URL ya existe, reinstaurar el TTL y devolver el ID existente
-    if (shortId) {
+    if (isExistingUrl && shortId) {
       console.log(`URL ya existe con ID: ${shortId}. Reinstaurando TTL.`)
 
       // Restaurar URL con TTL extendido
       const ttl = 60 * 60 * 24 // 24 horas
       try {
-        // Verificar que el shortId sigue existiendo (podría haber expirado el ID pero no el índice)
-        const idExists = await redis.exists(shortId)
-        if (idExists) {
-          // Reiniciar el TTL de la URL original
-          await redis.expire(shortId, ttl)
-          // Reiniciar el TTL del índice
-          await redis.expire(urlKey, ttl)
-          console.log(`TTL reinstaurado para ID: ${shortId} y Key: ${urlKey}`)
-        } else {
-          // Si el ID expiró pero el índice no, necesitamos guardar la URL nuevamente
-          await redis.set(shortId, normalizedUrl, { ex: ttl })
-          console.log(`URL guardada nuevamente con ID existente: ${shortId}`)
-        }
+        // Reiniciar el TTL de la URL original
+        await redis.expire(shortId, ttl)
+        // Reiniciar el TTL del índice
+        await redis.expire(urlKey, ttl)
+        console.log(`TTL reinstaurado para ID: ${shortId} y Key: ${urlKey}`)
       } catch (redisError) {
         console.error(`Error al reinstaurar TTL: ${redisError}`)
         // Continuamos, intentando devolver la URL existente
@@ -133,27 +146,43 @@ export async function POST(request: NextRequest) {
       year: "numeric" as const,
       hour: "2-digit" as const,
       minute: "2-digit" as const,
-      hour12: locale === ("en-US" as boolean),
+      hour12: locale === "en-US",
     }
 
     const expirationFormatted = expirationDate.toLocaleString(locale, options)
 
-    return NextResponse.json({
-      success: true,
-      shortUrl,
-      shortId,
-      expiration: {
-        seconds: 60 * 60 * 24,
-        formatted: expirationFormatted,
+    // Asegurarse de que la respuesta sea JSON válido
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        shortUrl,
+        shortId,
+        expiration: {
+          seconds: 60 * 60 * 24,
+          formatted: expirationFormatted,
+        },
+        isExistingUrl,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-      isExistingUrl: shortId !== null,
-    })
+    )
   } catch (error) {
     console.error("Error general al acortar URL:", error)
     const errorMessage =
       requestData?.lang === "es"
         ? "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo."
         : "An error occurred while shortening the URL. Please try again."
-    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
+
+    // Asegurarse de que la respuesta de error sea JSON válido
+    return new NextResponse(JSON.stringify({ success: false, error: errorMessage }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
   }
 }
