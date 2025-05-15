@@ -1,6 +1,23 @@
 import { redis } from "@/lib/redis"
-import { generateShortId, generateUrlKey, isValidUrl, normalizeUrl } from "@/lib/utils"
+import { generateUrlKey, isValidUrl, normalizeUrl, getUniqueShortId } from "@/lib/utils"
 import { type NextRequest, NextResponse } from "next/server"
+
+// Función para log condicional (solo en desarrollo)
+const log = (message: string) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(message)
+  }
+}
+
+// Función para log de error condicional (solo en desarrollo)
+const logError = (message: string, error?: any) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.error(message, error)
+  }
+}
+
+// Límite máximo de caracteres para una URL
+const URL_MAX_LENGTH = 2000
 
 export async function POST(request: NextRequest) {
   let requestData
@@ -9,7 +26,7 @@ export async function POST(request: NextRequest) {
     try {
       requestData = await request.json()
     } catch (jsonError) {
-      console.error("Error al parsear JSON de la solicitud:", jsonError)
+      logError("Error al parsear JSON de la solicitud:", jsonError)
       return NextResponse.json(
         { success: false, error: "Formato de solicitud inválido. Se esperaba JSON." },
         { status: 400 },
@@ -17,19 +34,29 @@ export async function POST(request: NextRequest) {
     }
 
     const { url, lang = "es" } = requestData
-    console.log(`Procesando solicitud para acortar URL. Idioma: ${lang}`)
+    log(`Procesando solicitud para acortar URL. Idioma: ${lang}`)
 
     // Validar la URL
     if (!url || !isValidUrl(url)) {
-      console.log(`URL inválida: ${url}`)
+      log(`URL inválida: ${url}`)
       const errorMessage =
         lang === "es" ? "URL inválida. Por favor, introduce una URL válida." : "Invalid URL. Please enter a valid URL."
       return NextResponse.json({ success: false, error: errorMessage }, { status: 400 })
     }
 
+    // Validar longitud de la URL
+    if (url.length > URL_MAX_LENGTH) {
+      log(`URL demasiado larga: ${url.length} caracteres`)
+      const errorMessage =
+        lang === "es"
+          ? `URL demasiado larga. El límite es de ${URL_MAX_LENGTH} caracteres.`
+          : `URL too long. The limit is ${URL_MAX_LENGTH} characters.`
+      return NextResponse.json({ success: false, error: errorMessage }, { status: 400 })
+    }
+
     // Normalizar la URL (asegurarse de que tiene protocolo)
     const normalizedUrl = normalizeUrl(url)
-    console.log("URL normalizada correctamente")
+    log("URL normalizada correctamente")
 
     // Generar una clave para esta URL
     const urlKey = generateUrlKey(normalizedUrl)
@@ -39,40 +66,33 @@ export async function POST(request: NextRequest) {
     let isExistingUrl = false
 
     try {
-      // Verificar si la URL existe en la base de datos
-      const exists = await redis.exists(urlKey)
-      console.log(`Comprobando si la URL existe. Exists: ${exists}`)
+      // Optimización: Usar directamente get en lugar de exists + get
+      shortId = await redis.get(urlKey)
 
-      if (exists) {
-        // Si existe, obtener el ID
-        shortId = await redis.get(urlKey)
-        console.log("URL existente encontrada")
+      if (shortId) {
+        log("URL existente encontrada")
 
-        if (shortId) {
-          // Verificar que el ID también existe (podría haber expirado)
-          const idExists = await redis.exists(shortId)
+        // Verificar que el ID también existe (podría haber expirado)
+        const idExists = await redis.exists(shortId)
 
-          if (idExists) {
-            isExistingUrl = true
-            console.log("ID existe, es una URL existente válida")
-          } else {
-            console.log("ID no existe, aunque la clave URL sí. Creando nuevo ID.")
-            shortId = null // Forzar la creación de un nuevo ID
-          }
+        if (idExists) {
+          isExistingUrl = true
+          log("ID existe, es una URL existente válida")
         } else {
-          console.log("No se pudo obtener el ID. Creando nuevo ID.")
+          log("ID no existe, aunque la clave URL sí. Creando nuevo ID.")
+          shortId = null // Forzar la creación de un nuevo ID
         }
       } else {
-        console.log(`URL no encontrada en la base de datos. Es nueva.`)
+        log(`URL no encontrada en la base de datos. Es nueva.`)
       }
     } catch (lookupError) {
-      console.error(`Error al buscar URL existente: ${lookupError}`)
+      logError(`Error al buscar URL existente:`, lookupError)
       // Continuamos con un nuevo ID si hay error
     }
 
     // Si la URL ya existe, reinstaurar el TTL y devolver el ID existente
     if (isExistingUrl && shortId) {
-      console.log("URL ya existe. Reinstaurando TTL.")
+      log("URL ya existe. Reinstaurando TTL.")
 
       // Restaurar URL con TTL extendido
       const ttl = 60 * 60 * 24 // 24 horas
@@ -81,33 +101,17 @@ export async function POST(request: NextRequest) {
         await redis.expire(shortId, ttl)
         // Reiniciar el TTL del índice
         await redis.expire(urlKey, ttl)
-        console.log("TTL reinstaurado correctamente")
+        log("TTL reinstaurado correctamente")
       } catch (redisError) {
-        console.error(`Error al reinstaurar TTL: ${redisError}`)
+        logError(`Error al reinstaurar TTL:`, redisError)
         // Continuamos, intentando devolver la URL existente
       }
     } else {
-      // Si la URL no existe, generar un nuevo ID corto
-      shortId = generateShortId()
-      let attempts = 0
-      const maxAttempts = 5
+      // Si la URL no existe, generar un nuevo ID corto usando la función extraída
+      shortId = await getUniqueShortId()
 
-      // Verificar que el ID no exista ya
-      while (attempts < maxAttempts) {
-        try {
-          const exists = await redis.exists(shortId)
-          if (!exists) break
-        } catch (existsError) {
-          console.error(`Error al verificar si el ID existe: ${existsError}`)
-          break
-        }
-
-        shortId = generateShortId()
-        attempts++
-      }
-
-      if (attempts >= maxAttempts) {
-        console.error("No se pudo generar un ID único después de múltiples intentos")
+      if (!shortId) {
+        logError("No se pudo generar un ID único después de múltiples intentos")
         const errorMessage =
           lang === "es"
             ? "No se pudo generar un ID único. Por favor, inténtalo de nuevo."
@@ -122,9 +126,9 @@ export async function POST(request: NextRequest) {
         await redis.set(shortId, normalizedUrl, { ex: ttl })
         // Guardar el índice URL -> ID
         await redis.set(urlKey, shortId, { ex: ttl })
-        console.log("Nueva URL guardada con TTL de 24h")
+        log("Nueva URL guardada con TTL de 24h")
       } catch (redisError) {
-        console.error(`Error al guardar en Redis: ${redisError}`)
+        logError(`Error al guardar en Redis:`, redisError)
         const errorMessage =
           lang === "es"
             ? "Error al guardar la URL. Por favor, inténtalo de nuevo."
@@ -133,11 +137,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Construir la URL corta - Usar URL absoluta
+    // Construir la URL corta - Usar URL absoluta con mejor detección de protocolo
     const host = request.headers.get("host") || process.env.VERCEL_URL || "localhost:3000"
-    const protocol = host.includes("localhost") ? "http" : "https"
+    const protocol = request.headers.get("x-forwarded-proto") || "https"
     const shortUrl = `${protocol}://${host}/go/${shortId}`
-    console.log("URL corta generada correctamente")
+    log("URL corta generada correctamente")
 
     // Calcular tiempo de expiración para mostrar al usuario
     const expirationDate = new Date(Date.now() + 60 * 60 * 24 * 1000) // 24 horas desde ahora
@@ -157,7 +161,7 @@ export async function POST(request: NextRequest) {
     try {
       expirationFormatted = expirationDate.toLocaleString(locale, options)
     } catch (dateError) {
-      console.error("Error al formatear la fecha:", dateError)
+      logError("Error al formatear la fecha:", dateError)
       // Fallback simple en caso de error
       expirationFormatted = expirationDate.toISOString()
     }
@@ -182,7 +186,7 @@ export async function POST(request: NextRequest) {
       },
     )
   } catch (error) {
-    console.error("Error general al acortar URL:", error)
+    logError("Error general al acortar URL:", error)
     const errorMessage =
       requestData?.lang === "es"
         ? "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo."

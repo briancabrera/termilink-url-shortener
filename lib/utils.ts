@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { createHash } from "crypto"
+import { redis } from "./redis"
 
 // Función para combinar clases de Tailwind
 export function cn(...inputs: ClassValue[]) {
@@ -20,6 +21,32 @@ export function generateShortId(length = 6): string {
   }
 
   return result
+}
+
+// Función para obtener un ID corto único verificando que no exista en Redis
+export async function getUniqueShortId(maxAttempts = 5): Promise<string | null> {
+  let shortId = generateShortId()
+  let attempts = 0
+
+  // Verificar que el ID no exista ya
+  while (attempts < maxAttempts) {
+    try {
+      const exists = await redis.exists(shortId)
+      if (!exists) return shortId
+    } catch (existsError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error(`Error al verificar si el ID existe: ${existsError}`)
+      }
+      // Si hay un error, devolvemos el ID actual y esperamos que no exista
+      return shortId
+    }
+
+    shortId = generateShortId()
+    attempts++
+  }
+
+  // Si después de varios intentos no se pudo generar un ID único, devolvemos null
+  return null
 }
 
 // Función para validar una URL
