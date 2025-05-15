@@ -1,30 +1,105 @@
-# Url shortener system
+# TermiLink - Acortador de URLs con Estilo Terminal
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+![TermiLink Logo](https://raw.githubusercontent.com/briancabrera/termilink/main/public/favicon.png)
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/briancabreradevgmailcoms-projects/v0-url-shortener-system)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/qnvJ1FaOswf)
+TermiLink es un acortador de URLs minimalista con estilo de terminal que te permite crear enlaces cortos que expiran automáticamente después de 24 horas. Perfecto para compartir enlaces temporales de forma rápida y segura.
 
-## Overview
+## Características
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+- **Rápido**: Acorta tus URLs en menos de 0.5 segundos gracias a Redis.
+- **Seguro**: Los enlaces expiran automáticamente después de 24 horas.
+- **Simple**: Interfaz minimalista inspirada en la terminal para acortar tus URLs.
+- **Multilingüe**: Soporte para español e inglés.
 
-## Deployment
+## Tecnologías
 
-Your project is live at:
+- [Next.js 14](https://nextjs.org/) - Framework de React
+- [Redis (Upstash)](https://upstash.com/) - Base de datos para almacenar URLs
+- [Tailwind CSS](https://tailwindcss.com/) - Framework CSS
+- [TypeScript](https://www.typescriptlang.org/) - Lenguaje de programación
 
-**[https://vercel.com/briancabreradevgmailcoms-projects/v0-url-shortener-system](https://vercel.com/briancabreradevgmailcoms-projects/v0-url-shortener-system)**
+## Requisitos
 
-## Build your app
+- Node.js 18.0.0 o superior
+- Cuenta en [Upstash](https://upstash.com/) para Redis (o Redis local para desarrollo)
 
-Continue building your app on:
+## Variables de Entorno
 
-**[https://v0.dev/chat/projects/qnvJ1FaOswf](https://v0.dev/chat/projects/qnvJ1FaOswf)**
+Crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
 
-## How It Works
+\`\`\`
+KV_URL=tu-url-de-redis
+KV_REST_API_URL=tu-url-de-api-rest-de-redis
+KV_REST_API_TOKEN=tu-token-de-api-de-redis
+\`\`\`
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+## Instalación
+
+1. Clona el repositorio:
+
+\`\`\`bash
+git clone https://github.com/tu-usuario/termilink.git
+cd termilink
+\`\`\`
+
+2. Instala las dependencias:
+
+\`\`\`bash
+npm install
+# o
+yarn install
+# o
+pnpm install
+\`\`\`
+
+3. Ejecuta el servidor de desarrollo:
+
+\`\`\`bash
+npm run dev
+# o
+yarn dev
+# o
+pnpm dev
+\`\`\`
+
+4. Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+
+## Despliegue
+
+La forma más sencilla de desplegar TermiLink es usando [Vercel](https://vercel.com):
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftu-usuario%2Ftermilink)
+
+Asegúrate de configurar las variables de entorno en la plataforma de despliegue.
+
+## Estructura del Proyecto
+
+\`\`\`
+/
+├── app/                    # Rutas y páginas de Next.js
+│   ├── [lang]/             # Páginas con soporte para idiomas
+│   ├── api/                # API endpoints
+│   └── go/                 # Redirección de URLs cortas
+├── components/             # Componentes React
+├── dictionaries/           # Archivos de traducción
+├── lib/                    # Utilidades y servicios
+│   ├── redis.ts            # Cliente de Redis
+│   └── utils.ts            # Funciones de utilidad
+└── public/                 # Archivos estáticos
+\`\`\`
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Por favor, abre un issue o un pull request para sugerir cambios o mejoras.
+
+## Licencia
+
+[MIT](LICENSE)
+
+## Autor
+
+[Tu Nombre](https://tu-sitio-web.com)
+
+---
+
+Desarrollado con ❤️ y ☕
