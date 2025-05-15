@@ -64,7 +64,7 @@ export default function Home() {
 
             <h1 className="terminal-title mb-2">TermiLink</h1>
             <p className="terminal-subtitle">
-              <span className="typing inline-block w-full">Acorta tus URLs por 24 horas</span>
+              <span className="typing">Acorta tus URLs por 24 horas</span>
             </p>
 
             <div className="mb-6">
