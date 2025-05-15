@@ -26,13 +26,19 @@ export function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname
 
-    // No procesar solicitudes a la API
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.next()
+    // Redirigir la raíz a la página con el idioma por defecto
+    if (pathname === "/") {
+      const locale = getLocale(request)
+      return NextResponse.redirect(new URL(`/${locale}`, request.url))
     }
 
-    // Verificar si la solicitud es para redirección de URL corta
-    if (pathname.startsWith("/go/")) {
+    // No procesar solicitudes a la API, archivos estáticos o redirecciones
+    if (
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/_next/") ||
+      pathname.startsWith("/favicon") ||
+      pathname.startsWith("/go/")
+    ) {
       return NextResponse.next()
     }
 

@@ -31,7 +31,7 @@ export default function NotFound() {
         </div>
 
         <div className="mt-4">
-          <Link href="/" className="terminal-button inline-block">
+          <Link href="/es" className="terminal-button inline-block">
             Volver al inicio
           </Link>
         </div>

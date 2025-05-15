@@ -56,7 +56,7 @@ export default function Error({
             <span className="terminal-command ml-2">cd /home</span>
           </div>
 
-          <Link href="/" className="terminal-button">
+          <Link href="/es" className="terminal-button">
             Volver al inicio
           </Link>
         </div>

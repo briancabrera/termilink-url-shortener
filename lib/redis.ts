@@ -16,9 +16,6 @@ export function createRedisClient() {
     // Si tenemos REDIS_URL pero no tenemos KV_REST_API_URL o KV_URL
     if (process.env.REDIS_URL && (!url || url === "")) {
       console.log("Usando REDIS_URL para la conexión a Upstash Redis")
-
-      // No usar directamente REDIS_URL, ya que puede tener formato incorrecto
-      // En su lugar, usar las variables de entorno específicas de Upstash
       return createMockRedisClient()
     }
 

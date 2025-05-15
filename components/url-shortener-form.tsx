@@ -110,13 +110,6 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
         )
       }
 
-      // Verificar si la respuesta es HTML en lugar de JSON
-      const contentType = response.headers.get("content-type")
-      if (contentType && contentType.includes("text/html")) {
-        console.error("Recibida respuesta HTML en lugar de JSON")
-        throw new Error("Error de servidor: respuesta incorrecta (HTML recibido)")
-      }
-
       // Intentar parsear la respuesta como JSON
       let data
       try {
