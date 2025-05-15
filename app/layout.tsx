@@ -10,7 +10,17 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "TermiLink - Acortador de URLs",
-  description: "Acorta tus URLs por 24 horas con estilo de terminal",
+  description: "Acorta tus URLs por 24 horas con TermiLink.",
+  openGraph: {
+    title: "TermiLink - Acortador de URLs",
+    description: "Acorta tus URLs por 24 horas con TermiLink.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "TermiLink - Acortador de URLs",
+    description: "Acorta tus URLs por 24 horas con TermiLink.",
+  },
     generator: 'v0.dev'
 }
 
@@ -27,6 +37,9 @@ export default function RootLayout({
           rel="icon"
           href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='black'/><path d='M30 50 L50 30 L50 40 L40 50 L50 60 L50 70 Z' fill='%234ade80'/><path d='M60 50 L80 30 L80 40 L70 50 L80 60 L80 70 Z' fill='%234ade80'/></svg>"
         />
+        <meta name="description" content="Acorta tus URLs por 24 horas con TermiLink." />
+        <meta property="og:description" content="Acorta tus URLs por 24 horas con TermiLink." />
+        <meta name="twitter:description" content="Acorta tus URLs por 24 horas con TermiLink." />
       </head>
       <body className={cn("min-h-screen bg-background font-mono antialiased", jetbrainsMono.className)}>
         <CustomHead />
