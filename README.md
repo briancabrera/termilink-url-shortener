@@ -1,4 +1,4 @@
-# TermiLink - Acortador de URLs con Estilo Terminal
+# TermiLink - Acortador de URLs
 
 **TermiLink** es un acortador de URLs minimalista con estilo de terminal que te permite crear enlaces cortos que expiran automáticamente después de 24 horas. Perfecto para compartir enlaces temporales de forma rápida y segura.
 
