@@ -1,0 +1,256 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --terminal-green: #4ade80;
+  --terminal-cyan: #22d3ee;
+  --terminal-yellow: #fbbf24;
+  --terminal-red: #f87171;
+  --terminal-bg: #000000;
+  --terminal-text: #e2e8f0;
+  --terminal-grid: rgba(77, 255, 77, 0.1);
+}
+
+body {
+  background-color: var(--terminal-bg);
+  color: var(--terminal-text);
+  font-family: "JetBrains Mono", monospace;
+  background-image: radial-gradient(var(--terminal-grid) 1px, transparent 0),
+    radial-gradient(var(--terminal-grid) 1px, transparent 0);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+.terminal-container {
+  border: 1px solid var(--terminal-green);
+  border-radius: 4px;
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 15px rgba(77, 255, 77, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.terminal-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: inset 0 0 8px rgba(77, 255, 77, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.feature-card .terminal-command {
+  word-break: break-all;
+  white-space: normal;
+  font-size: 1rem;
+}
+
+.feature-card .terminal-prompt {
+  font-size: 1rem;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--terminal-green);
+  padding-bottom: 0.75rem;
+}
+
+.terminal-prompt {
+  color: var(--terminal-green);
+  margin-right: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.terminal-command {
+  color: var(--terminal-cyan);
+  font-size: 1.25rem;
+}
+
+.terminal-title {
+  color: var(--terminal-cyan);
+  font-weight: bold;
+  text-align: center;
+  font-size: 2.5rem;
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+  letter-spacing: 1px;
+}
+
+.terminal-subtitle {
+  color: var(--terminal-yellow);
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 2.5rem;
+  letter-spacing: 0.5px;
+}
+
+.terminal-input {
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--terminal-green);
+  color: var(--terminal-text);
+  padding: 0.75rem 1rem;
+  width: 100%;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.1rem;
+}
+
+.terminal-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(77, 255, 77, 0.3);
+}
+
+.terminal-button {
+  background-color: var(--terminal-green);
+  color: black;
+  font-weight: bold;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+}
+
+.terminal-button:hover {
+  background-color: rgba(77, 255, 77, 0.8);
+  box-shadow: 0 0 10px rgba(77, 255, 77, 0.5);
+}
+
+.terminal-result {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--terminal-cyan);
+}
+
+.terminal-error {
+  color: var(--terminal-red);
+  font-size: 1.1rem;
+}
+
+.terminal-success {
+  color: var(--terminal-green);
+  font-size: 1.1rem;
+}
+
+.terminal-link {
+  color: var(--terminal-cyan);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--terminal-cyan);
+  font-size: 1.1rem;
+}
+
+.terminal-link:hover {
+  text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+}
+
+.feature-title {
+  color: var(--terminal-green);
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+}
+
+.feature-text {
+  color: var(--terminal-text);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.blink {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.typing {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--terminal-green);
+  animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink-caret {
+  from,
+  to {
+    border-color: transparent;
+  }
+  50% {
+    border-color: var(--terminal-green);
+  }
+}
+
+/* Estilos para los componentes de shadcn/ui */
+@layer base {
+  :root {
+    --background: 0 0% 0%;
+    --foreground: 210 40% 98%;
+
+    --card: 0 0% 3%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 0 0% 3%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 142 71% 45%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 217 91% 60%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 48 96% 53%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 142 71% 45%;
+    --input: 142 71% 45%;
+    --ring: 142 71% 45%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
