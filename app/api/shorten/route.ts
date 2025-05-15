@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { url, lang = "es" } = requestData
-    console.log(`Solicitud para acortar URL: ${url}, Idioma: ${lang}`)
+    console.log(`Procesando solicitud para acortar URL. Idioma: ${lang}`)
 
     // Validar la URL
     if (!url || !isValidUrl(url)) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Normalizar la URL (asegurarse de que tiene protocolo)
     const normalizedUrl = normalizeUrl(url)
-    console.log(`URL normalizada: ${normalizedUrl}`)
+    console.log("URL normalizada correctamente")
 
     // Generar una clave para esta URL
     const urlKey = generateUrlKey(normalizedUrl)
@@ -41,12 +41,12 @@ export async function POST(request: NextRequest) {
     try {
       // Verificar si la URL existe en la base de datos
       const exists = await redis.exists(urlKey)
-      console.log(`Comprobando si la URL existe. Key: ${urlKey}, Exists: ${exists}`)
+      console.log(`Comprobando si la URL existe. Exists: ${exists}`)
 
       if (exists) {
         // Si existe, obtener el ID
         shortId = await redis.get(urlKey)
-        console.log(`URL existente encontrada con ID: ${shortId}`)
+        console.log("URL existente encontrada")
 
         if (shortId) {
           // Verificar que el ID también existe (podría haber expirado)
@@ -54,13 +54,13 @@ export async function POST(request: NextRequest) {
 
           if (idExists) {
             isExistingUrl = true
-            console.log(`ID ${shortId} existe, es una URL existente válida`)
+            console.log("ID existe, es una URL existente válida")
           } else {
-            console.log(`ID ${shortId} no existe, aunque la clave URL sí. Creando nuevo ID.`)
+            console.log("ID no existe, aunque la clave URL sí. Creando nuevo ID.")
             shortId = null // Forzar la creación de un nuevo ID
           }
         } else {
-          console.log(`No se pudo obtener el ID para la clave ${urlKey}. Creando nuevo ID.`)
+          console.log("No se pudo obtener el ID. Creando nuevo ID.")
         }
       } else {
         console.log(`URL no encontrada en la base de datos. Es nueva.`)
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Si la URL ya existe, reinstaurar el TTL y devolver el ID existente
     if (isExistingUrl && shortId) {
-      console.log(`URL ya existe con ID: ${shortId}. Reinstaurando TTL.`)
+      console.log("URL ya existe. Reinstaurando TTL.")
 
       // Restaurar URL con TTL extendido
       const ttl = 60 * 60 * 24 // 24 horas
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         await redis.expire(shortId, ttl)
         // Reiniciar el TTL del índice
         await redis.expire(urlKey, ttl)
-        console.log(`TTL reinstaurado para ID: ${shortId} y Key: ${urlKey}`)
+        console.log("TTL reinstaurado correctamente")
       } catch (redisError) {
         console.error(`Error al reinstaurar TTL: ${redisError}`)
         // Continuamos, intentando devolver la URL existente
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         await redis.set(shortId, normalizedUrl, { ex: ttl })
         // Guardar el índice URL -> ID
         await redis.set(urlKey, shortId, { ex: ttl })
-        console.log(`Nueva URL guardada. ID: ${shortId}, URL: ${normalizedUrl}, Key: ${urlKey}, TTL: ${ttl}s (24h)`)
+        console.log("Nueva URL guardada con TTL de 24h")
       } catch (redisError) {
         console.error(`Error al guardar en Redis: ${redisError}`)
         const errorMessage =
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     const host = request.headers.get("host") || process.env.VERCEL_URL || "localhost:3000"
     const protocol = host.includes("localhost") ? "http" : "https"
     const shortUrl = `${protocol}://${host}/go/${shortId}`
-    console.log(`URL corta generada: ${shortUrl}`)
+    console.log("URL corta generada correctamente")
 
     // Calcular tiempo de expiración para mostrar al usuario
     const expirationDate = new Date(Date.now() + 60 * 60 * 24 * 1000) // 24 horas desde ahora

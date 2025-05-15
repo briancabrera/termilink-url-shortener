@@ -114,7 +114,7 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
       let data
       try {
         const text = await response.text()
-        console.log("Respuesta recibida:", text.substring(0, 200)) // Log para depuración
+        // Procesamos la respuesta sin mostrar información sensible en la consola
 
         // Intentar parsear el texto como JSON
         try {
