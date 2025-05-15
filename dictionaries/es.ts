@@ -52,6 +52,7 @@ export const dictionary = {
     },
     error: {
       title: "ERROR:",
+      invalidUrl: "La URL no parece válida. Asegúrate de que incluya un dominio real y comience con http:// o https://",
     },
     toast: {
       success: {
@@ -65,6 +66,11 @@ export const dictionary = {
       error: {
         title: "Error",
         description: "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.",
+      },
+      invalidUrl: {
+        title: "URL inválida",
+        description:
+          "La URL no parece válida. Asegúrate de que incluya un dominio real y comience con http:// o https://",
       },
       copy: {
         title: "¡Copiado!",

@@ -43,7 +43,7 @@ export function LanguageSwitcher({ dictionary, currentLocale }: LanguageSwitcher
           title={dictionary.languageSwitcher.es}
           aria-label={dictionary.languageSwitcher.es}
         >
-          <span className="flag">🇪🇸</span>
+          <span className="flag no-select">🇪🇸</span>
         </button>
         <button
           onClick={() => switchToLocale("en")}
@@ -51,7 +51,7 @@ export function LanguageSwitcher({ dictionary, currentLocale }: LanguageSwitcher
           title={dictionary.languageSwitcher.en}
           aria-label={dictionary.languageSwitcher.en}
         >
-          <span className="flag">🇺🇸</span>
+          <span className="flag no-select">🇺🇸</span>
         </button>
       </div>
     </div>

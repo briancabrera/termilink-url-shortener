@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 
 export default function Error({
@@ -10,9 +10,17 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const [isClient, setIsClient] = useState(false)
+
   useEffect(() => {
+    setIsClient(true)
     console.error("Error en la redirección:", error)
   }, [error])
+
+  // Asegurarse de que estamos en el cliente antes de renderizar
+  if (!isClient) {
+    return null
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-black">

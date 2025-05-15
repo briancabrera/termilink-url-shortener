@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Copy } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { getDictionary } from "@/dictionaries"
+import { isValidUrl } from "@/lib/utils"
 
 // Tipos para mejorar la legibilidad y mantenimiento
 type Dictionary = Awaited<ReturnType<typeof getDictionary>>
@@ -51,6 +52,8 @@ const useDictionary = (lang: string) => {
             },
             error: {
               title: "ERROR:",
+              invalidUrl:
+                "La URL no parece válida. Asegúrate de que incluya un dominio real y comience con http:// o https://",
             },
             toast: {
               success: {
@@ -64,6 +67,11 @@ const useDictionary = (lang: string) => {
               error: {
                 title: "Error",
                 description: "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.",
+              },
+              invalidUrl: {
+                title: "URL inválida",
+                description:
+                  "La URL no parece válida. Asegúrate de que incluya un dominio real y comience con http:// o https://",
               },
               copy: {
                 title: "¡Copiado!",
@@ -174,10 +182,43 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
     }
   }, [shortUrl, dictionary, toast])
 
+  // Validación de URL en el cliente
+  const validateUrl = useCallback(
+    (url: string): boolean => {
+      if (!url) return false
+
+      // Usar nuestra función mejorada de validación
+      const valid = isValidUrl(url, false) // No permitir IPs
+
+      if (!valid && dictionary) {
+        toast({
+          title: dictionary.form.toast.invalidUrl?.title || "URL inválida",
+          description:
+            dictionary.form.toast.invalidUrl?.description ||
+            "La URL no parece válida. Asegúrate de que incluya un dominio real y comience con http:// o https://",
+          variant: "destructive",
+        })
+      }
+
+      return valid
+    },
+    [dictionary, toast],
+  )
+
   // Manejador del formulario
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!dictionary || isSubmitting) return
+
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const url = formData.get("url") as string
+
+    // Validar URL antes de enviar
+    if (!validateUrl(url)) {
+      setError(dictionary.form.error.invalidUrl || "URL inválida")
+      return
+    }
 
     // Prevenir múltiples submits
     setIsSubmitting(true)
@@ -185,10 +226,6 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
     setShortUrl(null)
     setExpiration(null)
     setIsExistingUrl(false)
-
-    const form = e.currentTarget
-    const formData = new FormData(form)
-    const url = formData.get("url") as string
 
     try {
       // Usar la función auxiliar para acortar la URL
@@ -267,14 +304,14 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
   return (
     <div className="mb-6">
       <div className="flex mb-3">
-        <span className="terminal-prompt">$</span>
-        <span className="terminal-command ml-2">{dictionary.form.command}</span>
+        <span className="terminal-prompt no-select">$</span>
+        <span className="terminal-command ml-2 no-select">{dictionary.form.command}</span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex flex-col space-y-2">
           <div className="flex items-center">
-            <label htmlFor="url-input" className="terminal-prompt mr-2">
+            <label htmlFor="url-input" className="terminal-prompt mr-2 no-select">
               {dictionary.form.urlLabel}
             </label>
             <input
@@ -286,6 +323,7 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
               disabled={isSubmitting}
               className="terminal-input flex-1"
               aria-describedby={error ? "url-error" : undefined}
+              autoFocus
             />
           </div>
         </div>
@@ -298,7 +336,7 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
       {error && (
         <div id="url-error" className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded" aria-live="polite">
           <div className="flex">
-            <span className="text-red-500 mr-2">{dictionary.form.error.title}</span>
+            <span className="text-red-500 mr-2 no-select">{dictionary.form.error.title}</span>
             <p className="text-red-400">{error}</p>
           </div>
         </div>
@@ -307,8 +345,8 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
       {shortUrl && (
         <div className="mt-4 terminal-result" aria-live="polite">
           <div className="flex mb-3">
-            <span className="terminal-prompt">$</span>
-            <span className="terminal-command ml-2">{dictionary.form.result.command}</span>
+            <span className="terminal-prompt no-select">$</span>
+            <span className="terminal-command ml-2 no-select">{dictionary.form.result.command}</span>
           </div>
 
           {isExistingUrl && (
@@ -317,20 +355,22 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-cyan-400 mb-2 break-all text-xl">{shortUrl}</p>
-              <p className="text-yellow-400 text-lg">
-                <span className="text-gray-400">{dictionary.form.result.expiresIn}</span> {expiration}
-              </p>
+          <div className="flex flex-col">
+            <div className="short-url" onClick={copyToClipboard} title={dictionary.form.result.copyButton}>
+              {shortUrl}
             </div>
-            <button
-              onClick={copyToClipboard}
-              className="p-2 hover:bg-green-500/20 rounded"
-              aria-label={dictionary.form.result.copyButton}
-            >
-              <Copy className="h-5 w-5 text-green-400" />
-            </button>
+            <div className="flex items-center justify-between">
+              <p className="text-yellow-400 text-lg">
+                <span className="text-gray-400 no-select">{dictionary.form.result.expiresIn}</span> {expiration}
+              </p>
+              <button
+                onClick={copyToClipboard}
+                className="p-2 hover:bg-green-500/20 rounded"
+                aria-label={dictionary.form.result.copyButton}
+              >
+                <Copy className="h-5 w-5 text-green-400" />
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getDictionary } from "@/dictionaries"
+import { dictionary as enDictionary } from "@/dictionaries/en"
+import { dictionary as esDictionary } from "@/dictionaries/es"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -14,11 +15,9 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
   const { toast } = useToast()
 
   useEffect(() => {
-    const loadDictionary = async () => {
-      const dict = await getDictionary(params.lang)
-      setDictionary(dict)
-    }
-    loadDictionary()
+    // Cargar el diccionario directamente sin usar getDictionary
+    const dict = params.lang === "en" ? enDictionary : esDictionary
+    setDictionary(dict)
   }, [params.lang])
 
   async function testRedisConnection() {
@@ -28,6 +27,7 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
     setError(null)
 
     try {
+      // Llamar a la API del servidor en lugar de acceder a Redis directamente
       const response = await fetch("/api/redis-status")
       const data = await response.json()
       setRedisStatus(data)
@@ -68,8 +68,8 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
         <header className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <span className="terminal-prompt">$</span>
-              <span className="terminal-command ml-2">cd ~/termilink/debug</span>
+              <span className="terminal-prompt no-select">$</span>
+              <span className="terminal-command ml-2 no-select">cd ~/termilink/debug</span>
             </div>
             <LanguageSwitcher dictionary={dictionary} currentLocale={params.lang} />
           </div>
@@ -77,25 +77,25 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
 
         <div className="terminal-container mb-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 no-select">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
             </div>
-            <div className="text-xs text-gray-400">debug.sh</div>
+            <div className="text-xs text-gray-400 no-select">debug.sh</div>
           </div>
 
           <div className="flex mb-4">
-            <span className="terminal-prompt">$</span>
-            <span className="terminal-command ml-2">{dictionary.debug.command}</span>
+            <span className="terminal-prompt no-select">$</span>
+            <span className="terminal-command ml-2 no-select">{dictionary.debug.command}</span>
           </div>
 
           <h1 className="text-cyan-400 text-2xl font-bold mb-4">{dictionary.debug.title}</h1>
 
           <div className="mb-6">
             <div className="flex mb-2">
-              <span className="terminal-prompt">$</span>
-              <span className="terminal-command ml-2">{dictionary.debug.redisTest.command}</span>
+              <span className="terminal-prompt no-select">$</span>
+              <span className="terminal-command ml-2 no-select">{dictionary.debug.redisTest.command}</span>
             </div>
 
             <button onClick={testRedisConnection} disabled={isLoading} className="terminal-button">
@@ -105,7 +105,7 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
             {error && (
               <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded">
                 <div className="flex">
-                  <span className="text-red-500 mr-2">{dictionary.form.error.title}</span>
+                  <span className="text-red-500 mr-2 no-select">{dictionary.form.error.title}</span>
                   <p className="text-red-400">{error}</p>
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
                 <h3 className="text-green-400 font-bold mb-2">{dictionary.debug.redisTest.result}</h3>
                 <div className="mb-4">
                   <p className="text-gray-300">
-                    <span className="text-yellow-400 mr-2">{dictionary.debug.redisTest.status}</span>
+                    <span className="text-yellow-400 mr-2 no-select">{dictionary.debug.redisTest.status}</span>
                     {redisStatus.success ? (
                       <span className="text-green-400">{dictionary.debug.redisTest.success}</span>
                     ) : (
@@ -124,7 +124,7 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
                     )}
                   </p>
                   <p className="text-gray-300">
-                    <span className="text-yellow-400 mr-2">{dictionary.debug.redisTest.message}</span>
+                    <span className="text-yellow-400 mr-2 no-select">{dictionary.debug.redisTest.message}</span>
                     {redisStatus.message || redisStatus.error || dictionary.debug.redisTest.noMessage}
                   </p>
                 </div>
@@ -133,8 +133,8 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
           </div>
 
           <div className="flex">
-            <span className="terminal-prompt">$</span>
-            <span className="terminal-command ml-2">{dictionary.debug.homeCommand}</span>
+            <span className="terminal-prompt no-select">$</span>
+            <span className="terminal-command ml-2 no-select">{dictionary.debug.homeCommand}</span>
           </div>
 
           <div className="mt-4">

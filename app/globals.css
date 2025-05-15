@@ -7,6 +7,8 @@
   --terminal-cyan: #22d3ee;
   --terminal-yellow: #fbbf24;
   --terminal-red: #f87171;
+  --terminal-pink: #ec4899;
+  --terminal-bright-pink: #f472b6;
   --terminal-bg: #000000;
   --terminal-text: #e2e8f0;
   --terminal-grid: rgba(77, 255, 77, 0.1);
@@ -20,6 +22,64 @@ body {
     radial-gradient(var(--terminal-grid) 1px, transparent 0);
   background-size: 30px 30px;
   background-position: 0 0, 15px 15px;
+}
+
+/* Clase para elementos no seleccionables */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Permitir eventos en elementos dentro de no-select que necesitan interacción */
+.no-select button,
+.no-select a,
+.no-select input,
+.no-select label {
+  pointer-events: auto;
+}
+
+/* Estilo para la URL acortada */
+.short-url {
+  color: var(--terminal-bright-pink);
+  font-weight: bold;
+  font-size: 1.25rem;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  background-color: rgba(236, 72, 153, 0.1);
+  border: 1px dashed rgba(236, 72, 153, 0.3);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.short-url:hover {
+  background-color: rgba(236, 72, 153, 0.15);
+  border-color: rgba(236, 72, 153, 0.5);
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.2);
+}
+
+.short-url::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--terminal-bright-pink), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .terminal-container {

@@ -36,11 +36,13 @@ export async function POST(request: NextRequest) {
     const { url, lang = "es" } = requestData
     log(`Procesando solicitud para acortar URL. Idioma: ${lang}`)
 
-    // Validar la URL
-    if (!url || !isValidUrl(url)) {
+    // Validar la URL con nuestra función mejorada (no permitir IPs)
+    if (!url || !isValidUrl(url, false)) {
       log(`URL inválida: ${url}`)
       const errorMessage =
-        lang === "es" ? "URL inválida. Por favor, introduce una URL válida." : "Invalid URL. Please enter a valid URL."
+        lang === "es"
+          ? "La URL no parece válida. Asegúrate de que incluya un dominio real y comience con http:// o https://"
+          : "The URL doesn't seem valid. Make sure it includes a real domain and starts with http:// or https://"
       return NextResponse.json({ success: false, error: errorMessage }, { status: 400 })
     }
 

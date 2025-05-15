@@ -1,5 +1,13 @@
 import { Redis } from "@upstash/redis"
 
+// Verificar que estamos en el servidor de manera más precisa
+const isServer = typeof window === "undefined" && !process.env.NEXT_RUNTIME
+
+// Solo lanzar error si se importa desde el cliente en el navegador
+if (!isServer && typeof window !== "undefined") {
+  console.warn("Advertencia: El módulo Redis se está importando desde el cliente. Esto puede causar errores.")
+}
+
 // Función para crear el cliente de Redis con manejo de errores
 export function createRedisClient() {
   try {
@@ -9,13 +17,14 @@ export function createRedisClient() {
       return createMockRedisClient()
     }
 
-    // Determinar qué URL usar
+    // Determinar qué URL usar - priorizar KV_REST_API_URL sobre otras opciones
     const url = process.env.KV_REST_API_URL || process.env.KV_URL || ""
     const token = process.env.KV_REST_API_TOKEN || ""
 
     // Si tenemos REDIS_URL pero no tenemos KV_REST_API_URL o KV_URL
     if (process.env.REDIS_URL && (!url || url === "")) {
       console.log("Usando REDIS_URL para la conexión a Upstash Redis")
+      // Nota: Upstash SDK no soporta directamente REDIS_URL, así que usamos el cliente simulado
       return createMockRedisClient()
     }
 
@@ -26,10 +35,11 @@ export function createRedisClient() {
     }
 
     // Crear el cliente de Redis usando las variables de entorno
-    console.log("Inicializando cliente Redis")
+    console.log("Inicializando cliente Redis con Upstash")
     const redis = new Redis({
       url,
       token,
+      automaticDeserialization: true, // Asegurar deserialización automática
     })
 
     // Verificar que el cliente se ha inicializado correctamente
@@ -84,7 +94,7 @@ export function createRedisClient() {
           console.error(`Error en Redis EXPIRE para clave ${key}:`, error)
           // Usar el cliente simulado como fallback
           const mockClient = createMockRedisClient()
-          return mockClient.expire(key, seconds)
+          return mockClient.expire(key)
         }
       },
       del: async (key: string) => {

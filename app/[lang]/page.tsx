@@ -11,8 +11,8 @@ export default async function Home({ params }: { params: { lang: string } }) {
       <header className="container mx-auto mb-8">
         <div className="terminal-header flex justify-between items-center">
           <div>
-            <span className="terminal-prompt">$</span>
-            <span className="terminal-command ml-2">cd ~/termilink</span>
+            <span className="terminal-prompt no-select">$</span>
+            <span className="terminal-command ml-2 no-select">cd ~/termilink</span>
           </div>
           <LanguageSwitcher dictionary={dictionary} currentLocale={params.lang} />
         </div>
@@ -22,12 +22,12 @@ export default async function Home({ params }: { params: { lang: string } }) {
         <div className="w-full max-w-3xl mx-auto">
           <div className="terminal-container mb-8">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 no-select">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
               </div>
-              <div className="text-xs text-gray-400">termilink.sh</div>
+              <div className="text-xs text-gray-400 no-select">termilink.sh</div>
             </div>
 
             <h1 className="terminal-title mb-2">{dictionary.home.title}</h1>
@@ -37,8 +37,8 @@ export default async function Home({ params }: { params: { lang: string } }) {
 
             <div className="mb-6">
               <div className="flex">
-                <span className="terminal-prompt">$</span>
-                <span className="terminal-command ml-2">{dictionary.home.readme.command}</span>
+                <span className="terminal-prompt no-select">$</span>
+                <span className="terminal-command ml-2 no-select">{dictionary.home.readme.command}</span>
               </div>
               <div className="mt-2 p-4 bg-black/30 rounded border border-green-500/30">
                 <p className="text-gray-300 mb-2 text-lg">{dictionary.home.readme.description1}</p>
@@ -52,8 +52,8 @@ export default async function Home({ params }: { params: { lang: string } }) {
           <div className="grid gap-8 md:grid-cols-3">
             <div className="terminal-container feature-card">
               <div className="flex mb-3">
-                <span className="terminal-prompt">$</span>
-                <span className="terminal-command ml-2">{dictionary.home.features.speed.command}</span>
+                <span className="terminal-prompt no-select">$</span>
+                <span className="terminal-command ml-2 no-select">{dictionary.home.features.speed.command}</span>
               </div>
               <h3 className="feature-title">{dictionary.home.features.speed.title}</h3>
               <p className="feature-text">{dictionary.home.features.speed.description}</p>
@@ -61,8 +61,8 @@ export default async function Home({ params }: { params: { lang: string } }) {
 
             <div className="terminal-container feature-card">
               <div className="flex mb-3">
-                <span className="terminal-prompt">$</span>
-                <span className="terminal-command ml-2">{dictionary.home.features.security.command}</span>
+                <span className="terminal-prompt no-select">$</span>
+                <span className="terminal-command ml-2 no-select">{dictionary.home.features.security.command}</span>
               </div>
               <h3 className="feature-title">{dictionary.home.features.security.title}</h3>
               <p className="feature-text">{dictionary.home.features.security.description}</p>
@@ -70,8 +70,8 @@ export default async function Home({ params }: { params: { lang: string } }) {
 
             <div className="terminal-container feature-card">
               <div className="flex mb-3">
-                <span className="terminal-prompt">$</span>
-                <span className="terminal-command ml-2">{dictionary.home.features.simple.command}</span>
+                <span className="terminal-prompt no-select">$</span>
+                <span className="terminal-command ml-2 no-select">{dictionary.home.features.simple.command}</span>
               </div>
               <h3 className="feature-title">{dictionary.home.features.simple.title}</h3>
               <p className="feature-text">{dictionary.home.features.simple.description}</p>
@@ -83,8 +83,8 @@ export default async function Home({ params }: { params: { lang: string } }) {
       <footer className="container mx-auto mt-8 pt-4 border-t border-green-500/30">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center">
-            <span className="terminal-prompt">$</span>
-            <span className="text-gray-400 ml-2 text-lg">{dictionary.home.footer.command}</span>
+            <span className="terminal-prompt no-select">$</span>
+            <span className="text-gray-400 ml-2 text-lg no-select">{dictionary.home.footer.command}</span>
           </div>
 
           <div className="flex items-center">

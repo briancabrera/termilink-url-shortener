@@ -49,8 +49,73 @@ export async function getUniqueShortId(maxAttempts = 5): Promise<string | null> 
   return null
 }
 
-// Función para validar una URL
-export function isValidUrl(url: string): boolean {
+// Lista de TLDs comunes (extensible según necesidades)
+const COMMON_TLDS = [
+  "com",
+  "org",
+  "net",
+  "edu",
+  "gov",
+  "mil",
+  "io",
+  "co",
+  "ai",
+  "app",
+  "dev",
+  "me",
+  "info",
+  "biz",
+  "tv",
+  "online",
+  "tech",
+  "store",
+  "blog",
+  "site",
+  "xyz",
+  "club",
+  "shop",
+  "art",
+  "design",
+  "game",
+  "health",
+  // Dominios de países
+  "us",
+  "uk",
+  "ca",
+  "au",
+  "de",
+  "fr",
+  "es",
+  "it",
+  "jp",
+  "cn",
+  "ru",
+  "br",
+  "mx",
+  "ar",
+  "cl",
+  "co",
+  "pe",
+  "ve",
+]
+
+// Expresión regular para validar URLs
+const URL_REGEX = new RegExp(
+  `^(https?:\\/\\/)` + // Protocolo (http:// o https://)
+    `([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+` + // Subdominio (opcional) y dominio
+    `(${COMMON_TLDS.join("|")})` + // TLDs comunes
+    `(\\:\\d{1,5})?` + // Puerto (opcional)
+    `(\\/[a-zA-Z0-9%_.~#&=-]*)*` + // Ruta (opcional)
+    `(\\?[a-zA-Z0-9%_.~#&=-]+=[a-zA-Z0-9%_.~#&=-]*(&[a-zA-Z0-9%_.~#&=-]+=[a-zA-Z0-9%_.~#&=-]*)*)?` + // Query params (opcional)
+    `(\\#[-a-zA-Z0-9]*)?$`, // Fragment (opcional)
+  "i", // Case insensitive
+)
+
+// Expresión regular para detectar IPs
+const IP_REGEX = /^https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+
+// Función mejorada para validar una URL
+export function isValidUrl(url: string, allowIPs = false): boolean {
   // Si la URL no tiene protocolo, añadimos https:// temporalmente para la validación
   let urlToCheck = url
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -58,9 +123,21 @@ export function isValidUrl(url: string): boolean {
   }
 
   try {
+    // Verificar que es una URL válida según el constructor URL
     const parsedUrl = new URL(urlToCheck)
-    // Verificar que tiene un dominio válido (al menos un punto)
-    return parsedUrl.hostname.includes(".")
+
+    // Verificar que usa un protocolo permitido
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return false
+    }
+
+    // Verificar que no es una IP (a menos que estén permitidas)
+    if (!allowIPs && IP_REGEX.test(urlToCheck)) {
+      return false
+    }
+
+    // Verificar que tiene un dominio con TLD válido usando nuestra expresión regular
+    return URL_REGEX.test(urlToCheck)
   } catch (e) {
     return false
   }

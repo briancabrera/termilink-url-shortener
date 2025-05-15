@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 
 export default function Error({
@@ -10,9 +10,17 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const [isClient, setIsClient] = useState(false)
+
   useEffect(() => {
+    setIsClient(true)
     console.error("Error en la aplicación:", error)
   }, [error])
+
+  // Asegurarse de que estamos en el cliente antes de renderizar
+  if (!isClient) {
+    return null
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-black">
@@ -55,7 +63,7 @@ export default function Error({
             <span className="terminal-command ml-2">cd /home</span>
           </div>
 
-          <Link href="/" className="terminal-button">
+          <Link href="/es" className="terminal-button">
             Volver al inicio
           </Link>
         </div>
