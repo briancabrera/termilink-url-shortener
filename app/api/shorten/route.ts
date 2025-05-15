@@ -1,19 +1,16 @@
 import { redis } from "@/lib/redis"
 import { generateUrlKey, isValidUrl, normalizeUrl, getUniqueShortId } from "@/lib/utils"
 import { type NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/logger"
 
 // Función para log condicional (solo en desarrollo)
 const log = (message: string) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.log(message)
-  }
+  logger.info(message)
 }
 
 // Función para log de error condicional (solo en desarrollo)
 const logError = (message: string, error?: any) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.error(message, error)
-  }
+  logger.error(message, error)
 }
 
 // Límite máximo de caracteres para una URL

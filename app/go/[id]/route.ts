@@ -1,23 +1,18 @@
 import { redis } from "@/lib/redis"
 import { type NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/logger"
 
-// Función para log condicional (solo en desarrollo)
+// Función para log condicional
 const logInfo = (message: string) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[INFO] ${message}`)
-  }
+  logger.info(message)
 }
 
 const logWarn = (message: string) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.warn(`[WARN] ${message}`)
-  }
+  logger.warn(message)
 }
 
 const logError = (message: string, error?: any) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.error(`[ERROR] ${message}`, error)
-  }
+  logger.error(message, error)
 }
 
 // Validación de ID: solo permitir caracteres alfanuméricos y longitud razonable
@@ -45,33 +40,6 @@ const buildErrorUrl = (request: NextRequest, errorType: string, id?: string): UR
   return new URL(`/${lang}?error=${errorType}${id ? `&id=${id}` : ""}`, request.nextUrl.origin)
 }
 
-// Placeholder para implementación futura de rate limiting
-/*
-const RATE_LIMIT = {
-  windowMs: 60 * 1000, // 1 minuto
-  maxRequests: 10       // 10 solicitudes por minuto
-}
-
-const ipLimiter = new Map<string, { count: number, resetTime: number }>()
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const record = ipLimiter.get(ip)
-  
-  if (!record || now > record.resetTime) {
-    ipLimiter.set(ip, { count: 1, resetTime: now + RATE_LIMIT.windowMs })
-    return true
-  }
-  
-  if (record.count >= RATE_LIMIT.maxRequests) {
-    return false
-  }
-  
-  record.count++
-  return true
-}
-*/
-
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const id = params.id
 
@@ -89,15 +57,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       logWarn(`ID inválido: ${id}`)
       return NextResponse.redirect(buildErrorUrl(request, "invalid_id", id))
     }
-
-    // Implementación futura de rate limiting
-    /*
-    const clientIp = request.headers.get('x-forwarded-for') || 'unknown'
-    if (!checkRateLimit(clientIp)) {
-      logWarn(`Rate limit excedido para IP: ${clientIp}`)
-      return NextResponse.redirect(buildErrorUrl(request, "rate_limit"))
-    }
-    */
 
     // Obtener la URL original de Redis
     let url: string | null
