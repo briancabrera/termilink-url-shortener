@@ -4,12 +4,14 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { getDictionary } from "@/dictionaries"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function DebugPage({ params }: { params: { lang: string } }) {
   const [redisStatus, setRedisStatus] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dictionary, setDictionary] = useState<any>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     const loadDictionary = async () => {
@@ -29,9 +31,30 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
       const response = await fetch("/api/redis-status")
       const data = await response.json()
       setRedisStatus(data)
-    } catch (error) {
+
+      // Mostrar toast con el resultado
+      if (data.success) {
+        toast({
+          title: dictionary.debug.redisTest.success,
+          description: data.message || "",
+          variant: "success",
+        })
+      } else {
+        toast({
+          title: dictionary.debug.redisTest.error,
+          description: data.error || "",
+          variant: "destructive",
+        })
+      }
+    } catch (error: any) {
       console.error("Error al probar la conexión a Redis:", error)
-      setError("Error al probar la conexión a Redis")
+      setError(error.message || "Error al probar la conexión a Redis")
+
+      toast({
+        title: dictionary.form.toast.error.title,
+        description: error.message || dictionary.form.toast.error.description,
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }

@@ -53,6 +53,24 @@ export const dictionary = {
     error: {
       title: "ERROR:",
     },
+    toast: {
+      success: {
+        title: "¡URL acortada con éxito!",
+        description: "Tu URL corta está lista para usar.",
+      },
+      existing: {
+        title: "URL existente encontrada",
+        description: "URL ya existente. Se extendió su tiempo de expiración a 24 horas.",
+      },
+      error: {
+        title: "Error",
+        description: "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.",
+      },
+      copy: {
+        title: "¡Copiado!",
+        description: "URL copiada al portapapeles.",
+      },
+    },
   },
   errors: {
     notFound: {

@@ -38,7 +38,69 @@ export function createRedisClient() {
     // Verificar que el cliente se ha inicializado correctamente
     console.log("Cliente Redis inicializado correctamente")
 
-    return redis
+    // Envolver los métodos del cliente Redis para manejar errores
+    return {
+      set: async (key: string, value: string, options?: { ex?: number }) => {
+        try {
+          return await redis.set(key, value, options)
+        } catch (error) {
+          console.error(`Error en Redis SET para clave ${key}:`, error)
+          // Usar el cliente simulado como fallback
+          const mockClient = createMockRedisClient()
+          return mockClient.set(key, value, options)
+        }
+      },
+      get: async (key: string) => {
+        try {
+          return await redis.get(key)
+        } catch (error) {
+          console.error(`Error en Redis GET para clave ${key}:`, error)
+          // Usar el cliente simulado como fallback
+          const mockClient = createMockRedisClient()
+          return mockClient.get(key)
+        }
+      },
+      exists: async (key: string) => {
+        try {
+          return await redis.exists(key)
+        } catch (error) {
+          console.error(`Error en Redis EXISTS para clave ${key}:`, error)
+          // Usar el cliente simulado como fallback
+          const mockClient = createMockRedisClient()
+          return mockClient.exists(key)
+        }
+      },
+      incr: async (key: string) => {
+        try {
+          return await redis.incr(key)
+        } catch (error) {
+          console.error(`Error en Redis INCR para clave ${key}:`, error)
+          // Usar el cliente simulado como fallback
+          const mockClient = createMockRedisClient()
+          return mockClient.incr(key)
+        }
+      },
+      expire: async (key: string, seconds: number) => {
+        try {
+          return await redis.expire(key, seconds)
+        } catch (error) {
+          console.error(`Error en Redis EXPIRE para clave ${key}:`, error)
+          // Usar el cliente simulado como fallback
+          const mockClient = createMockRedisClient()
+          return mockClient.expire(key, seconds)
+        }
+      },
+      del: async (key: string) => {
+        try {
+          return await redis.del(key)
+        } catch (error) {
+          console.error(`Error en Redis DEL para clave ${key}:`, error)
+          // Usar el cliente simulado como fallback
+          const mockClient = createMockRedisClient()
+          return mockClient.del(key)
+        }
+      },
+    }
   } catch (error) {
     console.error("Error al crear el cliente de Redis:", error)
     return createMockRedisClient()
@@ -52,53 +114,95 @@ function createMockRedisClient() {
 
   return {
     set: async (key: string, value: string, options?: { ex?: number }) => {
-      // Siempre usar 24 horas (86400 segundos) como tiempo de expiración
-      const expiry = Date.now() + (options?.ex ? options.ex * 1000 : 86400 * 1000)
-      mockStorage.set(key, { value, expiry })
-      console.log(`[Mock Redis] SET ${key} = ${value} (expires in ${options?.ex || 86400}s)`)
-      return "OK"
+      try {
+        // Siempre usar 24 horas (86400 segundos) como tiempo de expiración
+        const expiry = Date.now() + (options?.ex ? options.ex * 1000 : 86400 * 1000)
+        mockStorage.set(key, { value, expiry })
+        console.log(`[Mock Redis] SET ${key} = ${value} (expires in ${options?.ex || 86400}s)`)
+        return "OK"
+      } catch (error) {
+        console.error(`[Mock Redis] Error en SET para clave ${key}:`, error)
+        return "ERROR"
+      }
     },
     get: async (key: string) => {
-      const item = mockStorage.get(key)
-      if (!item) {
-        console.log(`[Mock Redis] GET ${key} = null (not found)`)
+      try {
+        const item = mockStorage.get(key)
+        if (!item) {
+          console.log(`[Mock Redis] GET ${key} = null (not found)`)
+          return null
+        }
+
+        if (item.expiry && item.expiry < Date.now()) {
+          mockStorage.delete(key)
+          console.log(`[Mock Redis] GET ${key} = null (expired)`)
+          return null
+        }
+
+        console.log(`[Mock Redis] GET ${key} = ${item.value}`)
+        return item.value
+      } catch (error) {
+        console.error(`[Mock Redis] Error en GET para clave ${key}:`, error)
         return null
       }
-
-      if (item.expiry && item.expiry < Date.now()) {
-        mockStorage.delete(key)
-        console.log(`[Mock Redis] GET ${key} = null (expired)`)
-        return null
-      }
-
-      console.log(`[Mock Redis] GET ${key} = ${item.value}`)
-      return item.value
     },
     exists: async (key: string) => {
-      const item = mockStorage.get(key)
-      const exists = item !== undefined && (!item.expiry || item.expiry >= Date.now())
-      console.log(`[Mock Redis] EXISTS ${key} = ${exists}`)
-      return exists ? 1 : 0
+      try {
+        const item = mockStorage.get(key)
+        const exists = item !== undefined && (!item.expiry || item.expiry >= Date.now())
+        console.log(`[Mock Redis] EXISTS ${key} = ${exists}`)
+        return exists ? 1 : 0
+      } catch (error) {
+        console.error(`[Mock Redis] Error en EXISTS para clave ${key}:`, error)
+        return 0
+      }
     },
     incr: async (key: string) => {
-      const item = mockStorage.get(key)
-      let value = 1
+      try {
+        const item = mockStorage.get(key)
+        let value = 1
 
-      if (item && (!item.expiry || item.expiry >= Date.now())) {
-        value = Number.parseInt(item.value, 10) + 1
-        mockStorage.set(key, { value: value.toString(), expiry: item.expiry })
-      } else {
-        // Siempre usar 24 horas como tiempo de expiración para estadísticas también
-        mockStorage.set(key, { value: value.toString(), expiry: Date.now() + 86400 * 1000 })
+        if (item && (!item.expiry || item.expiry >= Date.now())) {
+          value = Number.parseInt(item.value, 10) + 1
+          mockStorage.set(key, { value: value.toString(), expiry: item.expiry })
+        } else {
+          // Siempre usar 24 horas como tiempo de expiración para estadísticas también
+          mockStorage.set(key, { value: value.toString(), expiry: Date.now() + 86400 * 1000 })
+        }
+
+        console.log(`[Mock Redis] INCR ${key} = ${value}`)
+        return value
+      } catch (error) {
+        console.error(`[Mock Redis] Error en INCR para clave ${key}:`, error)
+        return 1
       }
+    },
+    expire: async (key: string, seconds: number) => {
+      try {
+        const item = mockStorage.get(key)
+        if (!item) {
+          console.log(`[Mock Redis] EXPIRE ${key} = 0 (key not found)`)
+          return 0
+        }
 
-      console.log(`[Mock Redis] INCR ${key} = ${value}`)
-      return value
+        const expiry = Date.now() + seconds * 1000
+        mockStorage.set(key, { value: item.value, expiry })
+        console.log(`[Mock Redis] EXPIRE ${key} = 1 (expires in ${seconds}s)`)
+        return 1
+      } catch (error) {
+        console.error(`[Mock Redis] Error en EXPIRE para clave ${key}:`, error)
+        return 0
+      }
     },
     del: async (key: string) => {
-      const deleted = mockStorage.delete(key)
-      console.log(`[Mock Redis] DEL ${key} = ${deleted ? 1 : 0}`)
-      return deleted ? 1 : 0
+      try {
+        const deleted = mockStorage.delete(key)
+        console.log(`[Mock Redis] DEL ${key} = ${deleted ? 1 : 0}`)
+        return deleted ? 1 : 0
+      } catch (error) {
+        console.error(`[Mock Redis] Error en DEL para clave ${key}:`, error)
+        return 0
+      }
     },
   }
 }

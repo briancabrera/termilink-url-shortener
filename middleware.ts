@@ -9,40 +9,51 @@ export const defaultLocale = "es"
 
 // Función para obtener el idioma preferido del usuario
 function getLocale(request: NextRequest): string {
-  // Negotiator espera un objeto con headers
-  const headers = Object.fromEntries(request.headers.entries())
-  const negotiatorHeaders = { "accept-language": headers["accept-language"] || "" }
-  const languages = new Negotiator({ headers: negotiatorHeaders }).languages()
+  try {
+    // Negotiator espera un objeto con headers
+    const headers = Object.fromEntries(request.headers.entries())
+    const negotiatorHeaders = { "accept-language": headers["accept-language"] || "" }
+    const languages = new Negotiator({ headers: negotiatorHeaders }).languages()
 
-  return match(languages, locales, defaultLocale)
+    return match(languages, locales, defaultLocale)
+  } catch (error) {
+    console.error("Error al determinar el idioma:", error)
+    return defaultLocale
+  }
 }
 
 export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
+  try {
+    const pathname = request.nextUrl.pathname
 
-  // No procesar solicitudes a la API
-  if (pathname.startsWith("/api/")) {
+    // No procesar solicitudes a la API
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.next()
+    }
+
+    // Verificar si la solicitud es para redirección de URL corta
+    if (pathname.startsWith("/go/")) {
+      return NextResponse.next()
+    }
+
+    // Verificar si la ruta ya incluye un locale
+    const pathnameHasLocale = locales.some((locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`)
+
+    if (pathnameHasLocale) return NextResponse.next()
+
+    // Redirigir si no hay locale en la URL
+    const locale = getLocale(request)
+    const newUrl = new URL(`/${locale}${pathname.startsWith("/") ? "" : "/"}${pathname}`, request.url)
+
+    // Preservar los parámetros de búsqueda
+    newUrl.search = request.nextUrl.search
+
+    return NextResponse.redirect(newUrl)
+  } catch (error) {
+    console.error("Error en middleware:", error)
+    // En caso de error, permitir que la solicitud continúe
     return NextResponse.next()
   }
-
-  // Verificar si la solicitud es para redirección de URL corta
-  if (pathname.startsWith("/go/")) {
-    return NextResponse.next()
-  }
-
-  // Verificar si la ruta ya incluye un locale
-  const pathnameHasLocale = locales.some((locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`)
-
-  if (pathnameHasLocale) return NextResponse.next()
-
-  // Redirigir si no hay locale en la URL
-  const locale = getLocale(request)
-  const newUrl = new URL(`/${locale}${pathname.startsWith("/") ? "" : "/"}${pathname}`, request.url)
-
-  // Preservar los parámetros de búsqueda
-  newUrl.search = request.nextUrl.search
-
-  return NextResponse.redirect(newUrl)
 }
 
 export const config = {

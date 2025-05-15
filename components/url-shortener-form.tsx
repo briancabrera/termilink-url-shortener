@@ -17,8 +17,53 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
 
   useEffect(() => {
     const loadDictionary = async () => {
-      const dict = await getDictionary(lang)
-      setDictionary(dict)
+      try {
+        const dict = await getDictionary(lang)
+        setDictionary(dict)
+      } catch (error) {
+        console.error("Error al cargar el diccionario:", error)
+        // Usar un diccionario mínimo como fallback
+        setDictionary({
+          form: {
+            command: "./acortar-url.sh",
+            urlLabel: "URL:",
+            urlPlaceholder: "https://ejemplo.com",
+            submitButton: {
+              loading: "Procesando...",
+              default: "Acortar URL",
+            },
+            result: {
+              command: "cat resultado.txt",
+              existingUrl: "URL ya existente. Se extendió su tiempo de expiración a 24 horas.",
+              expiresIn: "Expira en:",
+              copyButton: "Copiar URL",
+              copied: "¡Copiado!",
+              copiedDescription: "URL copiada al portapapeles.",
+            },
+            error: {
+              title: "ERROR:",
+            },
+            toast: {
+              success: {
+                title: "¡URL acortada con éxito!",
+                description: "Tu URL corta está lista para usar.",
+              },
+              existing: {
+                title: "URL existente encontrada",
+                description: "URL ya existente. Se extendió su tiempo de expiración a 24 horas.",
+              },
+              error: {
+                title: "Error",
+                description: "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.",
+              },
+              copy: {
+                title: "¡Copiado!",
+                description: "URL copiada al portapapeles.",
+              },
+            },
+          },
+        })
+      }
     }
     loadDictionary()
   }, [lang])
@@ -95,31 +140,34 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
         setExpiration(data.expiration?.formatted || "24 horas")
         setIsExistingUrl(data.isExistingUrl)
 
-        const toastTitle = data.isExistingUrl ? "URL existente encontrada" : "¡URL acortada con éxito!"
-
-        const toastMessage = data.isExistingUrl
-          ? dictionary.form.result.existingUrl
-          : "Tu URL corta está lista para usar."
-
-        toast({
-          title: toastTitle,
-          description: toastMessage,
-          variant: data.isExistingUrl ? "default" : "success",
-        })
+        // Usar las traducciones para los toasts
+        if (data.isExistingUrl) {
+          toast({
+            title: dictionary.form.toast.existing.title,
+            description: dictionary.form.toast.existing.description,
+            variant: "default",
+          })
+        } else {
+          toast({
+            title: dictionary.form.toast.success.title,
+            description: dictionary.form.toast.success.description,
+            variant: "success",
+          })
+        }
       } else {
-        setError(data.error || "Ocurrió un error al acortar la URL.")
+        setError(data.error || dictionary.form.toast.error.description)
         toast({
-          title: "Error",
-          description: data.error || "Ocurrió un error al acortar la URL.",
+          title: dictionary.form.toast.error.title,
+          description: data.error || dictionary.form.toast.error.description,
           variant: "destructive",
         })
       }
     } catch (error: any) {
       console.error("Error al acortar URL:", error)
-      setError(error.message || "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.")
+      setError(error.message || dictionary.form.toast.error.description)
       toast({
-        title: "Error",
-        description: error.message || "Ocurrió un error al acortar la URL. Por favor, inténtalo de nuevo.",
+        title: dictionary.form.toast.error.title,
+        description: error.message || dictionary.form.toast.error.description,
         variant: "destructive",
       })
     } finally {
@@ -129,11 +177,36 @@ export function UrlShortenerForm({ lang }: { lang: string }) {
 
   function copyToClipboard() {
     if (shortUrl && dictionary) {
-      navigator.clipboard.writeText(shortUrl)
-      toast({
-        title: dictionary.form.result.copied,
-        description: dictionary.form.result.copiedDescription,
-      })
+      try {
+        navigator.clipboard.writeText(shortUrl)
+        toast({
+          title: dictionary.form.toast.copy.title,
+          description: dictionary.form.toast.copy.description,
+        })
+      } catch (error) {
+        console.error("Error al copiar al portapapeles:", error)
+        // Fallback para navegadores que no soportan clipboard API
+        const textArea = document.createElement("textarea")
+        textArea.value = shortUrl
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        try {
+          document.execCommand("copy")
+          toast({
+            title: dictionary.form.toast.copy.title,
+            description: dictionary.form.toast.copy.description,
+          })
+        } catch (err) {
+          console.error("Error al copiar con execCommand:", err)
+          toast({
+            title: dictionary.form.toast.error.title,
+            description: "No se pudo copiar la URL. Por favor, cópiala manualmente.",
+            variant: "destructive",
+          })
+        }
+        document.body.removeChild(textArea)
+      }
     }
   }
 

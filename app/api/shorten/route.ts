@@ -48,15 +48,19 @@ export async function POST(request: NextRequest) {
         shortId = await redis.get(urlKey)
         console.log(`URL existente encontrada con ID: ${shortId}`)
 
-        // Verificar que el ID también existe (podría haber expirado)
-        const idExists = await redis.exists(shortId)
+        if (shortId) {
+          // Verificar que el ID también existe (podría haber expirado)
+          const idExists = await redis.exists(shortId)
 
-        if (idExists) {
-          isExistingUrl = true
-          console.log(`ID ${shortId} existe, es una URL existente válida`)
+          if (idExists) {
+            isExistingUrl = true
+            console.log(`ID ${shortId} existe, es una URL existente válida`)
+          } else {
+            console.log(`ID ${shortId} no existe, aunque la clave URL sí. Creando nuevo ID.`)
+            shortId = null // Forzar la creación de un nuevo ID
+          }
         } else {
-          console.log(`ID ${shortId} no existe, aunque la clave URL sí. Creando nuevo ID.`)
-          shortId = null // Forzar la creación de un nuevo ID
+          console.log(`No se pudo obtener el ID para la clave ${urlKey}. Creando nuevo ID.`)
         }
       } else {
         console.log(`URL no encontrada en la base de datos. Es nueva.`)
@@ -149,7 +153,14 @@ export async function POST(request: NextRequest) {
       hour12: locale === "en-US",
     }
 
-    const expirationFormatted = expirationDate.toLocaleString(locale, options)
+    let expirationFormatted
+    try {
+      expirationFormatted = expirationDate.toLocaleString(locale, options)
+    } catch (dateError) {
+      console.error("Error al formatear la fecha:", dateError)
+      // Fallback simple en caso de error
+      expirationFormatted = expirationDate.toISOString()
+    }
 
     // Asegurarse de que la respuesta sea JSON válido
     return new NextResponse(
