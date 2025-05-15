@@ -86,10 +86,6 @@ Asegúrate de configurar las variables de entorno en la plataforma de despliegue
 └── public/                 # Archivos estáticos
 ```
 
-## 📄 Licencia
-
-[MIT](LICENSE)
-
 ## 👤 Autor
 
 [Brian Cabrera – Portfolio](https://briancabrera.com)
