@@ -7,12 +7,13 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { logger } from "@/lib/logger"
 
-export default function LoginPage() {
+export default function LoginPage({ params }: { params: { lang: string } }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null)
   const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(false)
   const router = useRouter()
+  const lang = params.lang || "es"
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -23,7 +24,7 @@ export default function LoginPage() {
         if (data.session) {
           logger.info("[Login Page] Sesión encontrada, redirigiendo")
           setIsAuthenticated(true)
-          router.push("/dashboard")
+          router.push(`/${lang}/dashboard`)
         } else {
           logger.info("[Login Page] No hay sesión activa")
         }
@@ -35,7 +36,7 @@ export default function LoginPage() {
     }
 
     checkAuth()
-  }, [router])
+  }, [router, lang])
 
   const runDiagnostic = async () => {
     setIsDiagnosticLoading(true)
@@ -119,22 +120,30 @@ export default function LoginPage() {
         </header>
 
         <div className="flex flex-col items-center justify-center">
-          <TerminalLogin />
+          <TerminalLogin lang={lang} />
 
           <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
-            <Link href="/" className="terminal-link">
-              Volver al inicio
+            <Link href={`/${lang}`} className="terminal-link">
+              {lang === "es" ? "Volver al inicio" : "Back to home"}
             </Link>
 
             <button onClick={runDiagnostic} disabled={isDiagnosticLoading} className="terminal-button text-sm">
-              {isDiagnosticLoading ? "Ejecutando..." : "Ejecutar diagnóstico"}
+              {isDiagnosticLoading
+                ? lang === "es"
+                  ? "Ejecutando..."
+                  : "Running..."
+                : lang === "es"
+                  ? "Ejecutar diagnóstico"
+                  : "Run diagnostic"}
             </button>
           </div>
 
           {/* Información de diagnóstico */}
           {diagnosticInfo && (
             <div className="mt-6 w-full max-w-md p-4 bg-black/30 border border-cyan-500/30 rounded">
-              <h3 className="text-cyan-400 font-bold mb-2">Información de diagnóstico:</h3>
+              <h3 className="text-cyan-400 font-bold mb-2">
+                {lang === "es" ? "Información de diagnóstico:" : "Diagnostic information:"}
+              </h3>
               <pre className="text-gray-300 text-xs overflow-auto max-h-60">
                 {JSON.stringify(diagnosticInfo, null, 2)}
               </pre>

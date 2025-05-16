@@ -21,7 +21,7 @@ export default function NotFound() {
         </div>
 
         <div className="p-3 bg-black/30 border border-yellow-500/30 rounded mb-6">
-          <p className="text-yellow-400 font-mono">No results found.&lt;/dev/null</p>
+          <p className="text-yellow-400 font-mono">No results found.</p>
         </div>
 
         <h1 className="text-red-500 text-3xl font-bold mb-4">Error 404: Página no encontrada</h1>
@@ -43,7 +43,7 @@ export default function NotFound() {
         </div>
 
         <div className="mt-4">
-          <Link href="/" className="terminal-button inline-block">
+          <Link href="/es" className="terminal-button inline-block">
             Volver al inicio
           </Link>
         </div>

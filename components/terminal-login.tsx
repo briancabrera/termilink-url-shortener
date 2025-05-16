@@ -45,10 +45,10 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
         // Esperar un poco para que el toast se muestre
         await new Promise((resolve) => setTimeout(resolve, 1000))
 
-        logger.info(`Redirigiendo a: /dashboard`)
+        logger.info(`Redirigiendo a: /${lang}/dashboard`)
 
         // Usar window.location.href directamente para forzar la redirección completa
-        window.location.href = "/dashboard"
+        window.location.href = `/${lang}/dashboard`
       } else {
         logger.warn("No se creó la sesión después de la autenticación")
         throw new Error(lang === "es" ? "No se pudo crear la sesión" : "Could not create session")

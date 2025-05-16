@@ -13,11 +13,14 @@ interface AuthGuardProps {
   lang?: string
 }
 
-export function AuthGuard({ children, redirectTo = "/login", lang = "es" }: AuthGuardProps) {
+export function AuthGuard({ children, redirectTo, lang = "es" }: AuthGuardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+
+  // If redirectTo is not provided, use the language-specific login path
+  const loginPath = redirectTo || `/${lang}/login`
 
   useEffect(() => {
     // Verificar sesión actual
@@ -52,8 +55,8 @@ export function AuthGuard({ children, redirectTo = "/login", lang = "es" }: Auth
 
           // Redirigir al login usando window.location para forzar recarga completa
           setTimeout(() => {
-            logger.info(`AuthGuard: Redirigiendo a login: ${redirectTo}`)
-            window.location.href = redirectTo
+            logger.info(`AuthGuard: Redirigiendo a login: ${loginPath}`)
+            window.location.href = loginPath
           }, 1000)
         }
       } catch (error: any) {
@@ -71,7 +74,7 @@ export function AuthGuard({ children, redirectTo = "/login", lang = "es" }: Auth
 
         // Redirigir al login usando window.location
         setTimeout(() => {
-          window.location.href = redirectTo
+          window.location.href = loginPath
         }, 1000)
       }
     }
@@ -92,7 +95,7 @@ export function AuthGuard({ children, redirectTo = "/login", lang = "es" }: Auth
         setIsLoading(false)
 
         // Redirigir al login
-        window.location.href = redirectTo
+        window.location.href = loginPath
       }
     })
 
@@ -100,7 +103,7 @@ export function AuthGuard({ children, redirectTo = "/login", lang = "es" }: Auth
       logger.info("AuthGuard: Limpiando suscripción de autenticación")
       authListener?.subscription.unsubscribe()
     }
-  }, [router, toast, lang, redirectTo])
+  }, [router, toast, lang, loginPath])
 
   // Mostrar un loader mientras se verifica la autenticación
   if (isLoading) {
@@ -174,7 +177,7 @@ export function AuthGuard({ children, redirectTo = "/login", lang = "es" }: Auth
           </div>
 
           <div className="flex justify-center">
-            <button onClick={() => (window.location.href = redirectTo)} className="terminal-button">
+            <button onClick={() => (window.location.href = loginPath)} className="terminal-button">
               {lang === "es" ? "Ir a login" : "Go to login"}
             </button>
           </div>

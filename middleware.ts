@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
 
     // Verificar si es una ruta protegida que requiere autenticación
     // Excluir la ruta de login
-    if ((pathname === "/dashboard" || pathname.includes("/admin")) && !pathname.includes("/login")) {
+    if (pathname.includes("/dashboard") && !pathname.includes("/login")) {
       // Crear cliente de Supabase
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,10 +48,11 @@ export async function middleware(request: NextRequest) {
         data: { session },
       } = await supabase.auth.getSession()
 
-      // Si no hay sesión, redirigir al login
+      // Si no hay sesión, redirigir al login con el idioma correcto
       if (!session) {
+        const locale = getLocale(request)
         const url = request.nextUrl.clone()
-        url.pathname = "/login"
+        url.pathname = `/${locale}/login`
         return NextResponse.redirect(url)
       }
     }
@@ -60,6 +61,12 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/") {
       const locale = getLocale(request)
       return NextResponse.redirect(new URL(`/${locale}`, request.url))
+    }
+
+    // Redirigir /login y /dashboard a /{locale}/login y /{locale}/dashboard
+    if (pathname === "/login" || pathname === "/dashboard") {
+      const locale = getLocale(request)
+      return NextResponse.redirect(new URL(`/${locale}${pathname}`, request.url))
     }
 
     // No procesar solicitudes a la API, archivos estáticos o redirecciones
@@ -93,6 +100,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Matcher ignoring `/_next/` and `/api/`
+  // Matcher ignoring `/_next/`, `/api/`, and other static paths
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico|go).*)"],
 }
