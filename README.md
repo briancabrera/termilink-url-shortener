@@ -2,7 +2,7 @@
 
 ![TermiLink Logo](https://raw.githubusercontent.com/briancabrera/termilink/main/public/favicon.png)
 
-TermiLink es un acortador de URLs minimalista con estilo de terminal que te permite crear enlaces cortos que expiran automáticamente después de 24 horas. Perfecto para compartir enlaces temporales de forma rápida y segura.
+TermiLink: Enlaces cortos que expiran en 24 horas. Comparte enlaces temporales de forma rápida y segura.
 
 ## Características
 

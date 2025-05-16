@@ -1,16 +1,15 @@
 export const dictionary = {
   metadata: {
     title: "TermiLink - Acortador de URLs",
-    description: "Acorta tus URLs por 24 horas con TermiLink.",
+    description: "Enlaces cortos que expiran en 24 horas.",
   },
   home: {
     title: "TermiLink",
     subtitle: "Acorta tus URLs por 24 horas",
     readme: {
       command: "cat README.md",
-      description1:
-        "TermiLink es un acortador de URLs minimalista con estilo de terminal que te permite crear enlaces cortos que expiran automáticamente después de 24 horas.",
-      description2: "Perfecto para compartir enlaces temporales de forma rápida y segura.",
+      description1: "TermiLink: Enlaces cortos que expiran en 24 horas.",
+      description2: "Comparte enlaces temporales de forma rápida y segura.",
     },
     features: {
       speed: {
@@ -137,10 +136,129 @@ export const dictionary = {
     },
     homeCommand: "cd /home",
     homeButton: "Volver al inicio",
+    admin: {
+      title: "Panel de Administración",
+      metrics: {
+        title: "# === MÉTRICAS ===",
+        totalUrls: "Total URLs",
+        totalClicks: "Clicks Totales",
+        averageClicks: "Clicks Promedio",
+        lastUrl: "Última URL",
+        noUrls: "No hay URLs",
+        loading: "Cargando métricas...",
+      },
+      management: {
+        title: "# === ADMINISTRACIÓN ===",
+        search: {
+          command: "find",
+          placeholder: "Buscar por slug...",
+          button: "Buscar",
+          buttonLoading: "Buscando...",
+          showAll: "Mostrar todos",
+          notFound: "No se encontraron URLs",
+        },
+        list: {
+          command: "ls -la",
+          loading: "Cargando URLs...",
+          columns: {
+            slug: "Slug",
+            originalUrl: "URL Original",
+            clicks: "Clicks",
+            actions: "Acciones",
+          },
+        },
+        actions: {
+          copy: "Copiar URL",
+          delete: "Eliminar URL",
+          confirmDelete: '¿Estás seguro de que deseas eliminar la URL con slug "{slug}"?',
+        },
+      },
+      diagnostics: {
+        title: "# === DIAGNÓSTICO ===",
+      },
+      auth: {
+        login: {
+          title: "# === ACCESO ADMIN ===",
+          command: "./login.sh",
+          emailLabel: "EMAIL:",
+          passwordLabel: "CONTRASEÑA:",
+          button: "Iniciar sesión",
+          buttonLoading: "Procesando...",
+          noAccount: "¿No tienes cuenta? Regístrate",
+        },
+        signup: {
+          title: "# === REGISTRO ADMIN ===",
+          command: "./registro.sh",
+          emailLabel: "EMAIL:",
+          passwordLabel: "CONTRASEÑA:",
+          button: "Registrarse",
+          buttonLoading: "Procesando...",
+          haveAccount: "¿Ya tienes cuenta? Inicia sesión",
+        },
+        logout: "Cerrar sesión",
+        verifyingSession: "Verificando sesión...",
+        verifyingAuth: "Verificando autenticación...",
+        accessDenied: "Acceso denegado",
+        noPermissions: "No tienes permisos de administrador para acceder a esta sección.",
+      },
+      toast: {
+        dataUpdated: {
+          title: "Datos actualizados",
+          description: "Los datos del sistema se han actualizado correctamente.",
+        },
+        searchError: {
+          title: "Error de búsqueda",
+          description: "Ingresa un slug para buscar.",
+        },
+        urlFound: {
+          title: "URL encontrada",
+          description: 'Se encontró la URL con slug "{slug}"',
+        },
+        urlNotFound: {
+          title: "URL no encontrada",
+          description: 'No se encontró ninguna URL con slug "{slug}"',
+        },
+        searchError: {
+          title: "Error",
+          description: "Ocurrió un error al buscar la URL.",
+        },
+        urlDeleted: {
+          title: "URL eliminada",
+          description: 'La URL con slug "{slug}" ha sido eliminada correctamente.',
+        },
+        deleteError: {
+          title: "Error",
+          description: "Ocurrió un error al eliminar la URL.",
+        },
+        urlCopied: {
+          title: "URL copiada",
+          description: 'La URL "{url}" ha sido copiada al portapapeles.',
+        },
+        copyError: {
+          title: "Error",
+          description: "No se pudo copiar la URL al portapapeles.",
+        },
+        loginSuccess: {
+          title: "Acceso exitoso",
+          description: "Bienvenido al panel de administración.",
+        },
+        signupSuccess: {
+          title: "Cuenta creada",
+          description: "Revisa tu email para confirmar tu cuenta.",
+        },
+        authError: {
+          title: "Error de autenticación",
+          description: "Ocurrió un error durante la autenticación.",
+        },
+      },
+      buttons: {
+        updateData: "Actualizar datos",
+        updating: "Actualizando...",
+        backToHome: "Volver al inicio",
+      },
+    },
   },
   languageSwitcher: {
-    label: "Idioma:",
-    es: "Español",
-    en: "Inglés",
+    label: "Idioma",
   },
 }

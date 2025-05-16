@@ -1,16 +1,15 @@
 export const dictionary = {
   metadata: {
     title: "TermiLink - URL Shortener",
-    description: "Shorten your URLs for 24 hours with TermiLink.",
+    description: "Short links that expire in 24 hours.",
   },
   home: {
     title: "TermiLink",
     subtitle: "Shorten your URLs for 24 hours",
     readme: {
       command: "cat README.md",
-      description1:
-        "TermiLink is a minimalist URL shortener with terminal style that allows you to create short links that automatically expire after 24 hours.",
-      description2: "Perfect for quickly and securely sharing temporary links.",
+      description1: "TermiLink: Short links that expire in 24 hours.",
+      description2: "Share temporary links quickly and securely.",
     },
     features: {
       speed: {
