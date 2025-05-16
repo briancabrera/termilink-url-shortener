@@ -27,9 +27,9 @@ export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname
 
-    // Verificar si es una ruta de debug que requiere autenticación
+    // Verificar si es una ruta protegida que requiere autenticación
     // Excluir la ruta de login
-    if (pathname.includes("/debug") && !pathname.includes("/debug/login")) {
+    if ((pathname === "/dashboard" || pathname.includes("/admin")) && !pathname.includes("/login")) {
       // Crear cliente de Supabase
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,12 +50,8 @@ export async function middleware(request: NextRequest) {
 
       // Si no hay sesión, redirigir al login
       if (!session) {
-        // Extraer el idioma de la URL
-        const urlParts = pathname.split("/")
-        const lang = urlParts.length > 1 && (urlParts[1] === "es" || urlParts[1] === "en") ? urlParts[1] : "es"
-
         const url = request.nextUrl.clone()
-        url.pathname = `/${lang}/debug/login`
+        url.pathname = "/login"
         return NextResponse.redirect(url)
       }
     }

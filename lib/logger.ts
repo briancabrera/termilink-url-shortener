@@ -21,7 +21,7 @@ interface LoggerConfig {
 // Configuración por defecto
 const defaultConfig: LoggerConfig = {
   // En producción, mostrar logs de nivel info y superior si DEBUG está habilitado
-  minLevel: process.env.DEBUG === "true" ? "info" : process.env.NODE_ENV === "production" ? "error" : "debug",
+  minLevel: process.env.DEBUG === "true" ? "debug" : process.env.NODE_ENV === "production" ? "info" : "debug",
   // Forzar logs en producción si DEBUG está habilitado
   forceLogsInProduction: process.env.DEBUG === "true",
   prefixes: {
@@ -91,8 +91,8 @@ export class Logger {
   // Método para verificar si un nivel de log debe ser mostrado
   private shouldLog(level: LogLevel): boolean {
     // En producción, mostrar logs si está forzado o si DEBUG está habilitado
-    if (process.env.NODE_ENV === "production" && !this.config.forceLogsInProduction && process.env.DEBUG !== "true") {
-      return level === "error"
+    if (process.env.NODE_ENV === "production") {
+      return this.config.forceLogsInProduction || process.env.DEBUG === "true" || level === "error"
     }
 
     return logLevelValue[level] >= logLevelValue[this.config.minLevel]

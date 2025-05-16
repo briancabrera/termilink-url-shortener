@@ -98,9 +98,12 @@ export default async function Home({ params }: { params: { lang: string } }) {
             </a>
           </div>
 
-          <div>
+          <div className="flex space-x-4">
             <Link href={`/${params.lang}/debug`} className="terminal-link">
               {dictionary.home.footer.debug}
+            </Link>
+            <Link href="/login" className="terminal-link">
+              Admin
             </Link>
           </div>
         </div>

@@ -4,7 +4,6 @@ import type React from "react"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
-import { useRouter } from "next/navigation"
 import { logger } from "@/lib/logger"
 
 interface TerminalLoginProps {
@@ -16,7 +15,6 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
-  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,10 +45,10 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
         // Esperar un poco para que el toast se muestre
         await new Promise((resolve) => setTimeout(resolve, 1000))
 
-        logger.info(`Redirigiendo a: /${lang}/debug`)
+        logger.info(`Redirigiendo a: /dashboard`)
 
         // Usar window.location.href directamente para forzar la redirección completa
-        window.location.href = `/${lang}/debug`
+        window.location.href = "/dashboard"
       } else {
         logger.warn("No se creó la sesión después de la autenticación")
         throw new Error(lang === "es" ? "No se pudo crear la sesión" : "Could not create session")

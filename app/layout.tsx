@@ -10,9 +10,13 @@ import { initializeLogger } from "@/lib/logger"
 if (typeof window === "undefined") {
   // Solo inicializar en el servidor para evitar duplicación
   initializeLogger({
-    minLevel: process.env.DEBUG === "true" ? "debug" : process.env.NODE_ENV === "production" ? "info" : "debug",
-    forceLogsInProduction: process.env.DEBUG === "true",
+    minLevel: "debug", // Siempre mostrar todos los logs
+    forceLogsInProduction: true, // Forzar logs en producción
   })
+
+  // Log para verificar que el sistema de logging está funcionando
+  console.log("DEBUG environment variable:", process.env.DEBUG)
+  console.log("NODE_ENV environment variable:", process.env.NODE_ENV)
 }
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
