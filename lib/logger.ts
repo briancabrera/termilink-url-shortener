@@ -20,8 +20,10 @@ interface LoggerConfig {
 
 // Configuración por defecto
 const defaultConfig: LoggerConfig = {
-  minLevel: process.env.NODE_ENV === "production" ? "error" : "debug",
-  forceLogsInProduction: false,
+  // En producción, mostrar logs de nivel info y superior si DEBUG está habilitado
+  minLevel: process.env.DEBUG === "true" ? "info" : process.env.NODE_ENV === "production" ? "error" : "debug",
+  // Forzar logs en producción si DEBUG está habilitado
+  forceLogsInProduction: process.env.DEBUG === "true",
   prefixes: {
     debug: "[DEBUG]",
     info: "[INFO]",
@@ -73,6 +75,9 @@ export class Logger {
 
   // Método para verificar si un mensaje debe ser suprimido
   private shouldSuppress(message: any): boolean {
+    // Si estamos en modo DEBUG, no suprimir nada
+    if (process.env.DEBUG === "true") return false
+
     if (!message || typeof message !== "string") return false
 
     return this.config.suppressPatterns.some((pattern) => {
@@ -85,8 +90,8 @@ export class Logger {
 
   // Método para verificar si un nivel de log debe ser mostrado
   private shouldLog(level: LogLevel): boolean {
-    // En producción, solo mostrar logs si está forzado
-    if (process.env.NODE_ENV === "production" && !this.config.forceLogsInProduction) {
+    // En producción, mostrar logs si está forzado o si DEBUG está habilitado
+    if (process.env.NODE_ENV === "production" && !this.config.forceLogsInProduction && process.env.DEBUG !== "true") {
       return level === "error"
     }
 
@@ -145,6 +150,12 @@ export function suppressWarnings() {
   // Sobrescribir console.warn para filtrar advertencias
   const originalWarn = console.warn
   console.warn = (...args: any[]) => {
+    // Si DEBUG está habilitado, no suprimir nada
+    if (process.env.DEBUG === "true") {
+      originalWarn.apply(console, args)
+      return
+    }
+
     // Verificar si el mensaje coincide con algún patrón a suprimir
     if (args[0] && typeof args[0] === "string") {
       for (const pattern of defaultConfig.suppressPatterns) {
@@ -162,8 +173,8 @@ export function suppressWarnings() {
 
 // Exportar una función para inicializar el logger en la aplicación
 export function initializeLogger(config: Partial<LoggerConfig> = {}) {
-  // En producción, suprimir todas las advertencias por defecto
-  if (process.env.NODE_ENV === "production") {
+  // En producción, suprimir todas las advertencias por defecto a menos que DEBUG esté habilitado
+  if (process.env.NODE_ENV === "production" && process.env.DEBUG !== "true") {
     suppressWarnings()
   }
 
@@ -172,7 +183,7 @@ export function initializeLogger(config: Partial<LoggerConfig> = {}) {
     const customLogger = new Logger(config)
 
     // Si se desea, sobrescribir los métodos de console
-    if (config.forceLogsInProduction || process.env.NODE_ENV !== "production") {
+    if (config.forceLogsInProduction || process.env.NODE_ENV !== "production" || process.env.DEBUG === "true") {
       customLogger.overrideConsole()
     }
 

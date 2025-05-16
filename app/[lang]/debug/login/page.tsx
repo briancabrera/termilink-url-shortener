@@ -5,25 +5,84 @@ import { TerminalLogin } from "@/components/terminal-login"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { logger } from "@/lib/logger"
 
 export default function AdminLoginPage({ params }: { params: { lang: string } }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null)
+  const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(false)
   const router = useRouter()
   const lang = params.lang
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
-        setIsAuthenticated(true)
-        router.push(`/${lang}/debug`)
+      try {
+        logger.info("[Login Page] Verificando sesión")
+        const { data } = await supabase.auth.getSession()
+
+        if (data.session) {
+          logger.info("[Login Page] Sesión encontrada, redirigiendo")
+          setIsAuthenticated(true)
+          router.push(`/${lang}/debug`)
+        } else {
+          logger.info("[Login Page] No hay sesión activa")
+        }
+      } catch (error) {
+        logger.error("[Login Page] Error al verificar sesión:", error)
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     checkAuth()
   }, [router, lang])
+
+  const runDiagnostic = async () => {
+    setIsDiagnosticLoading(true)
+    try {
+      logger.info("[Login Page] Ejecutando diagnóstico")
+
+      // Verificar estado de autenticación desde la API
+      const authResponse = await fetch("/api/auth/status")
+      const authData = await authResponse.json()
+
+      // Verificar estado de Redis
+      const redisResponse = await fetch("/api/redis-status")
+      const redisData = await redisResponse.json()
+
+      // Recopilar información del navegador
+      const browserInfo = {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        cookiesEnabled: navigator.cookieEnabled,
+        localStorage: typeof localStorage !== "undefined",
+        sessionStorage: typeof sessionStorage !== "undefined",
+      }
+
+      // Recopilar información del entorno
+      const environmentInfo = {
+        nodeEnv: process.env.NODE_ENV,
+        debug: process.env.DEBUG === "true",
+        siteUrl: process.env.NEXT_PUBLIC_SITE_URL || window.location.origin,
+      }
+
+      setDiagnosticInfo({
+        timestamp: new Date().toISOString(),
+        auth: authData,
+        redis: redisData,
+        browser: browserInfo,
+        environment: environmentInfo,
+      })
+
+      logger.info("[Login Page] Diagnóstico completado")
+    } catch (error) {
+      logger.error("[Login Page] Error en diagnóstico:", error)
+      setDiagnosticInfo({ error: String(error) })
+    } finally {
+      setIsDiagnosticLoading(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -65,11 +124,33 @@ export default function AdminLoginPage({ params }: { params: { lang: string } })
         <div className="flex flex-col items-center justify-center">
           <TerminalLogin lang={lang} />
 
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
             <Link href={`/${lang}`} className="terminal-link">
               {lang === "es" ? "Volver al inicio" : "Back to home"}
             </Link>
+
+            <button onClick={runDiagnostic} disabled={isDiagnosticLoading} className="terminal-button text-sm">
+              {isDiagnosticLoading
+                ? lang === "es"
+                  ? "Ejecutando..."
+                  : "Running..."
+                : lang === "es"
+                  ? "Ejecutar diagnóstico"
+                  : "Run diagnostic"}
+            </button>
           </div>
+
+          {/* Información de diagnóstico */}
+          {diagnosticInfo && (
+            <div className="mt-6 w-full max-w-md p-4 bg-black/30 border border-cyan-500/30 rounded">
+              <h3 className="text-cyan-400 font-bold mb-2">
+                {lang === "es" ? "Información de diagnóstico:" : "Diagnostic information:"}
+              </h3>
+              <pre className="text-gray-300 text-xs overflow-auto max-h-60">
+                {JSON.stringify(diagnosticInfo, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
       </div>
     </div>

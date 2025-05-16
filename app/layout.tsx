@@ -10,7 +10,7 @@ import { initializeLogger } from "@/lib/logger"
 if (typeof window === "undefined") {
   // Solo inicializar en el servidor para evitar duplicación
   initializeLogger({
-    minLevel: process.env.NODE_ENV === "production" ? "error" : "info",
+    minLevel: process.env.DEBUG === "true" ? "debug" : process.env.NODE_ENV === "production" ? "info" : "debug",
     forceLogsInProduction: process.env.DEBUG === "true",
   })
 }
