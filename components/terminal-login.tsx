@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
@@ -15,44 +15,28 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
-
-  // Función para mostrar información de depuración
-  const showDebugInfo = (message: string) => {
-    logger.info(`[Auth Debug] ${message}`)
-    if (process.env.DEBUG === "true") {
-      setDebugInfo((prev) => (prev ? `${prev}\n${message}` : message))
-    }
-  }
-
-  // Verificar si estamos en producción
-  useEffect(() => {
-    showDebugInfo(`Entorno: ${process.env.NODE_ENV || "development"}`)
-    showDebugInfo(`DEBUG habilitado: ${process.env.DEBUG === "true" ? "Sí" : "No"}`)
-    showDebugInfo(`URL del sitio: ${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}`)
-  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    showDebugInfo("Iniciando proceso de login...")
 
     try {
-      showDebugInfo(`Intentando autenticar a: ${email}`)
+      logger.info(`Iniciando login para: ${email}`)
+
       const result = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (result.error) {
-        showDebugInfo(`Error de autenticación: ${result.error.message}`)
+        logger.error(`Error de autenticación: ${result.error.message}`)
         throw result.error
       }
 
       if (result.data?.session) {
-        showDebugInfo("Autenticación exitosa, sesión creada")
+        logger.info("Sesión creada correctamente")
 
         toast({
           title: lang === "es" ? "Acceso exitoso" : "Login successful",
@@ -60,25 +44,19 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
           variant: "success",
         })
 
-        // Pequeña pausa para asegurar que la sesión se establezca correctamente
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        // Esperar un poco para que el toast se muestre
+        await new Promise((resolve) => setTimeout(resolve, 1000))
 
-        showDebugInfo(`Redirigiendo a: /${lang}/debug`)
+        logger.info(`Redirigiendo a: /${lang}/debug`)
 
-        // Usar router.push en lugar de window.location para una navegación más limpia
-        router.push(`/${lang}/debug`)
-
-        // Como respaldo, también intentamos la redirección con window.location después de un breve retraso
-        setTimeout(() => {
-          showDebugInfo("Usando redirección de respaldo con window.location")
-          window.location.href = `/${lang}/debug`
-        }, 1000)
+        // Usar window.location.href directamente para forzar la redirección completa
+        window.location.href = `/${lang}/debug`
       } else {
-        showDebugInfo("Autenticación completada pero no se creó sesión")
+        logger.warn("No se creó la sesión después de la autenticación")
         throw new Error(lang === "es" ? "No se pudo crear la sesión" : "Could not create session")
       }
     } catch (error: any) {
-      showDebugInfo(`Error capturado: ${error.message || "Error desconocido"}`)
+      logger.error(`Error en login: ${error.message || "Error desconocido"}`)
 
       toast({
         title: lang === "es" ? "Error" : "Error",
@@ -161,14 +139,6 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
           {lang === "es" ? "Los usuarios se crean manualmente en Supabase." : "Users are created manually in Supabase."}
         </p>
       </div>
-
-      {/* Información de depuración */}
-      {debugInfo && (
-        <div className="mt-6 p-4 bg-black/30 border border-cyan-500/30 rounded">
-          <h3 className="text-cyan-400 font-bold mb-2">Información de depuración:</h3>
-          <pre className="text-gray-300 text-xs overflow-auto max-h-40">{debugInfo}</pre>
-        </div>
-      )}
     </div>
   )
 }

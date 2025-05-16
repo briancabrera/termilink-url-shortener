@@ -5,13 +5,14 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { logger } from "@/lib/logger"
 
 interface AuthGuardProps {
   children: React.ReactNode
-  lang: string
+  lang?: string
 }
 
-export function AuthGuard({ children, lang }: AuthGuardProps) {
+export function AuthGuard({ children, lang = "es" }: AuthGuardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
@@ -21,32 +22,56 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
     // Verificar sesión actual
     const checkSession = async () => {
       try {
+        logger.info("AuthGuard: Verificando sesión")
         const { data, error } = await supabase.auth.getSession()
 
         if (error) {
+          logger.error(`AuthGuard: Error al verificar sesión: ${error.message}`)
           throw error
         }
 
         if (data?.session) {
+          logger.info("AuthGuard: Sesión válida encontrada")
           setIsAuthenticated(true)
           setIsLoading(false)
         } else {
+          logger.warn("AuthGuard: No se encontró sesión válida")
           setIsAuthenticated(false)
           setIsLoading(false)
-          // Redirigir al login si no hay sesión
-          router.push(`/${lang}/debug/login`)
+
+          // Mostrar toast para informar al usuario
+          toast({
+            title: lang === "es" ? "Sesión no válida" : "Invalid session",
+            description:
+              lang === "es"
+                ? "Necesitas iniciar sesión para acceder a esta página"
+                : "You need to log in to access this page",
+            variant: "destructive",
+          })
+
+          // Redirigir al login usando window.location para forzar recarga completa
+          setTimeout(() => {
+            logger.info(`AuthGuard: Redirigiendo a login: /${lang}/debug/login`)
+            window.location.href = `/${lang}/debug/login`
+          }, 1500)
         }
       } catch (error: any) {
-        console.error("Error al verificar sesión:", error)
+        logger.error(`AuthGuard: Error general: ${error.message || "Error desconocido"}`)
+
         toast({
           title: lang === "es" ? "Error de autenticación" : "Authentication error",
           description:
             error.message || (lang === "es" ? "No se pudo verificar tu sesión." : "Could not verify your session."),
           variant: "destructive",
         })
+
         setIsAuthenticated(false)
         setIsLoading(false)
-        router.push(`/${lang}/debug/login`)
+
+        // Redirigir al login usando window.location
+        setTimeout(() => {
+          window.location.href = `/${lang}/debug/login`
+        }, 1500)
       }
     }
 
@@ -54,19 +79,24 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
 
     // Suscribirse a cambios en la autenticación
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      logger.info(`AuthGuard: Cambio de estado de autenticación: ${event}`)
+
       if (event === "SIGNED_IN" && session) {
+        logger.info("AuthGuard: Usuario ha iniciado sesión")
         setIsAuthenticated(true)
         setIsLoading(false)
-        // Asegurarse de que la página se recargue para mostrar el contenido correcto
-        router.refresh()
       } else if (event === "SIGNED_OUT") {
+        logger.info("AuthGuard: Usuario ha cerrado sesión")
         setIsAuthenticated(false)
         setIsLoading(false)
-        router.push(`/${lang}/debug/login`)
+
+        // Redirigir al login
+        window.location.href = `/${lang}/debug/login`
       }
     })
 
     return () => {
+      logger.info("AuthGuard: Limpiando suscripción de autenticación")
       authListener?.subscription.unsubscribe()
     }
   }, [router, toast, lang])
@@ -110,9 +140,46 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
     )
   }
 
-  // Si no está autenticado, no renderizar nada (ya se redirigió al login)
+  // Si no está autenticado, mostrar mensaje y redirigir
   if (!isAuthenticated) {
-    return null
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-black">
+        <div className="terminal-container w-full max-w-md">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex space-x-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <div className="text-xs text-gray-400">access_denied.sh</div>
+          </div>
+
+          <div className="mb-6">
+            <div className="flex">
+              <span className="terminal-prompt">$</span>
+              <span className="terminal-command ml-2">./check_auth.sh</span>
+            </div>
+          </div>
+
+          <div className="p-4 bg-black/30 border border-red-500/30 rounded mb-4">
+            <h3 className="text-red-400 font-bold text-xl mb-2">
+              {lang === "es" ? "Acceso denegado" : "Access denied"}
+            </h3>
+            <p className="text-gray-300">
+              {lang === "es"
+                ? "No tienes permisos para acceder a esta página. Redirigiendo..."
+                : "You don't have permission to access this page. Redirecting..."}
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            <button onClick={() => (window.location.href = `/${lang}/debug/login`)} className="terminal-button">
+              {lang === "es" ? "Ir a login" : "Go to login"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Si el usuario está autenticado, mostrar el contenido
