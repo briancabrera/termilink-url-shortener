@@ -21,7 +21,7 @@ interface LoggerConfig {
 // Configuración por defecto
 const defaultConfig: LoggerConfig = {
   // En producción, mostrar logs de nivel info y superior si DEBUG está habilitado
-  minLevel: process.env.DEBUG === "true" ? "debug" : process.env.NODE_ENV === "production" ? "info" : "debug",
+  minLevel: process.env.DEBUG === "true" ? "debug" : process.env.NODE_ENV === "production" ? "error" : "debug",
   // Forzar logs en producción si DEBUG está habilitado
   forceLogsInProduction: process.env.DEBUG === "true",
   prefixes: {

@@ -24,18 +24,50 @@ export default function LoginPage({ params }: { params: { lang: string } }) {
         if (data.session) {
           logger.info("[Login Page] Sesión encontrada, redirigiendo")
           setIsAuthenticated(true)
-          router.push(`/${lang}/dashboard`)
+
+          // Usar un enfoque más robusto para la redirección
+          try {
+            // Primero intentar con router.push
+            router.push(`/${lang}/dashboard`)
+
+            // Como respaldo, usar window.location después de un breve retraso
+            setTimeout(() => {
+              logger.info("[Login Page] Usando redirección de respaldo")
+              window.location.href = `/${lang}/dashboard`
+            }, 1000)
+          } catch (redirectError) {
+            logger.error("[Login Page] Error en redirección:", redirectError)
+            // Último recurso
+            window.location.href = `/${lang}/dashboard`
+          }
         } else {
           logger.info("[Login Page] No hay sesión activa")
+          setIsLoading(false)
         }
       } catch (error) {
         logger.error("[Login Page] Error al verificar sesión:", error)
-      } finally {
         setIsLoading(false)
       }
     }
 
     checkAuth()
+
+    // Suscribirse a cambios en la autenticación
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      logger.info(`[Login Page] Cambio de estado de autenticación: ${event}`)
+
+      if (event === "SIGNED_IN" && session) {
+        logger.info("[Login Page] Usuario ha iniciado sesión, redirigiendo")
+        setIsAuthenticated(true)
+
+        // Redirigir al dashboard
+        window.location.href = `/${lang}/dashboard`
+      }
+    })
+
+    return () => {
+      authListener?.subscription.unsubscribe()
+    }
   }, [router, lang])
 
   const runDiagnostic = async () => {
@@ -78,6 +110,28 @@ export default function LoginPage({ params }: { params: { lang: string } }) {
       logger.info("[Login Page] Diagnóstico completado")
     } catch (error) {
       logger.error("[Login Page] Error en diagnóstico:", error)
+      setDiagnosticInfo({ error: String(error) })
+    } finally {
+      setIsDiagnosticLoading(false)
+    }
+  }
+
+  const checkAuthStatus = async () => {
+    try {
+      setIsDiagnosticLoading(true)
+
+      // Verificar estado de autenticación desde la API de debug
+      const authResponse = await fetch("/api/auth/debug")
+      const authData = await authResponse.json()
+
+      setDiagnosticInfo({
+        timestamp: new Date().toISOString(),
+        authStatus: authData,
+      })
+
+      logger.info("[Login Page] Verificación de autenticación completada")
+    } catch (error) {
+      logger.error("[Login Page] Error en verificación de autenticación:", error)
       setDiagnosticInfo({ error: String(error) })
     } finally {
       setIsDiagnosticLoading(false)
@@ -135,6 +189,16 @@ export default function LoginPage({ params }: { params: { lang: string } }) {
                 : lang === "es"
                   ? "Ejecutar diagnóstico"
                   : "Run diagnostic"}
+            </button>
+
+            <button onClick={checkAuthStatus} disabled={isDiagnosticLoading} className="terminal-button text-sm">
+              {isDiagnosticLoading
+                ? lang === "es"
+                  ? "Verificando..."
+                  : "Checking..."
+                : lang === "es"
+                  ? "Verificar autenticación"
+                  : "Check authentication"}
             </button>
           </div>
 

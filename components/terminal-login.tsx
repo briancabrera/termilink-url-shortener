@@ -22,6 +22,7 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
 
     try {
       logger.info(`Iniciando login para: ${email}`)
+      logger.debug(`Login: Intentando iniciar sesión con email: ${email.substring(0, 3)}...`)
 
       const result = await supabase.auth.signInWithPassword({
         email,
@@ -35,6 +36,7 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
 
       if (result.data?.session) {
         logger.info("Sesión creada correctamente")
+        logger.debug(`Login: Sesión creada correctamente. ID: ${result.data.session.user.id.substring(0, 8)}...`)
 
         toast({
           title: lang === "es" ? "Acceso exitoso" : "Login successful",
@@ -46,15 +48,35 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
         await new Promise((resolve) => setTimeout(resolve, 1000))
 
         logger.info(`Redirigiendo a: /${lang}/dashboard`)
+        logger.debug(`Login: Preparando redirección a /${lang}/dashboard`)
 
-        // Usar window.location.href directamente para forzar la redirección completa
-        window.location.href = `/${lang}/dashboard`
+        // Usar una redirección más robusta
+        try {
+          // Primero intentamos con router.push si está disponible
+          window.location.href = `/${lang}/dashboard`
+          logger.debug(`Login: Redirección iniciada`)
+
+          // Como respaldo, forzamos una recarga completa después de un breve retraso
+          setTimeout(() => {
+            window.location.replace(`/${lang}/dashboard`)
+          }, 500)
+        } catch (redirectError) {
+          logger.error(`Error en redirección: ${redirectError}`)
+          // Último recurso: recargar la página
+          window.location.href = `/${lang}/dashboard`
+        }
       } else {
         logger.warn("No se creó la sesión después de la autenticación")
         throw new Error(lang === "es" ? "No se pudo crear la sesión" : "Could not create session")
       }
     } catch (error: any) {
       logger.error(`Error en login: ${error.message || "Error desconocido"}`)
+      logger.error(`Login: Error detallado:`, {
+        message: error.message,
+        name: error.name,
+        stack: error.stack?.substring(0, 200),
+        email: email.substring(0, 3) + "...",
+      })
 
       toast({
         title: lang === "es" ? "Error" : "Error",

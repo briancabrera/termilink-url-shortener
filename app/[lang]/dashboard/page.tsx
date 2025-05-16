@@ -237,6 +237,10 @@ export default function DashboardPage({ params }: { params: { lang: string } }) 
                       ? "Actualizar datos"
                       : "Refresh data"}
                 </button>
+                <Link href={`/${lang}/dashboard/logs`} className="terminal-button flex items-center">
+                  <span className="mr-2">📋</span>
+                  {lang === "es" ? "Ver logs" : "View logs"}
+                </Link>
                 <button onClick={handleLogout} className="terminal-button">
                   {lang === "es" ? "Cerrar sesión" : "Sign out"}
                 </button>

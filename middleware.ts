@@ -30,30 +30,51 @@ export async function middleware(request: NextRequest) {
     // Verificar si es una ruta protegida que requiere autenticación
     // Excluir la ruta de login
     if (pathname.includes("/dashboard") && !pathname.includes("/login")) {
-      // Crear cliente de Supabase
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return request.cookies.get(name)?.value
+      try {
+        // Crear cliente de Supabase
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              get(name: string) {
+                return request.cookies.get(name)?.value
+              },
             },
           },
-        },
-      )
+        )
 
-      // Verificar sesión
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+        console.log("Middleware: Verificando sesión para ruta protegida:", pathname)
 
-      // Si no hay sesión, redirigir al login con el idioma correcto
-      if (!session) {
-        const locale = getLocale(request)
-        const url = request.nextUrl.clone()
-        url.pathname = `/${locale}/login`
-        return NextResponse.redirect(url)
+        // Verificar sesión
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        console.log("Middleware: Resultado de verificación de sesión:", session ? "Sesión válida" : "Sin sesión")
+
+        // Si no hay sesión, redirigir al login con el idioma correcto
+        if (!session) {
+          console.log("Middleware: Redirigiendo a login debido a falta de sesión")
+          console.log("Middleware: No session found, redirecting to login")
+          const locale = getLocale(request)
+          const url = request.nextUrl.clone()
+          url.pathname = `/${locale}/login`
+          return NextResponse.redirect(url)
+        }
+
+        console.log("Middleware: Session found, allowing access to dashboard")
+      } catch (error) {
+        console.error("Middleware: Error checking session:", error)
+        console.error("Middleware: Error detallado:", {
+          message: error.message,
+          name: error.name,
+          stack: error.stack?.substring(0, 200),
+          pathname,
+        })
+        // En caso de error, permitir que la solicitud continúe
+        // para que el componente AuthGuard maneje la autenticación en el cliente
+        return NextResponse.next()
       }
     }
 
