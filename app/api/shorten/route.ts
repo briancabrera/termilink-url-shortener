@@ -16,6 +16,52 @@ const logError = (message: string, error?: any) => {
 // Límite máximo de caracteres para una URL
 const URL_MAX_LENGTH = 2000
 
+// Función para actualizar el índice de URLs
+async function updateUrlIndex(slug: string, isNew = true) {
+  try {
+    // Obtener el índice actual
+    const urlIndex = await redis.get("url_index")
+    let slugs: string[] = []
+
+    if (urlIndex) {
+      try {
+        slugs = JSON.parse(urlIndex as string)
+        if (!Array.isArray(slugs)) {
+          slugs = []
+        }
+      } catch (parseError) {
+        logger.warn("Error al parsear índice de URLs:", parseError)
+      }
+    }
+
+    // Si es una nueva URL, añadirla al principio del índice
+    if (isNew && !slugs.includes(slug)) {
+      slugs.unshift(slug)
+      // Limitar el tamaño del índice a 1000 elementos
+      if (slugs.length > 1000) {
+        slugs = slugs.slice(0, 1000)
+      }
+    } else if (!isNew) {
+      // Si estamos actualizando una URL existente, moverla al principio
+      const index = slugs.indexOf(slug)
+      if (index > -1) {
+        slugs.splice(index, 1)
+        slugs.unshift(slug)
+      } else if (!slugs.includes(slug)) {
+        // Si no existe en el índice, añadirla
+        slugs.unshift(slug)
+      }
+    }
+
+    // Guardar el índice actualizado
+    await redis.set("url_index", JSON.stringify(slugs))
+    return true
+  } catch (error) {
+    logger.error("Error al actualizar índice de URLs:", error)
+    return false
+  }
+}
+
 export async function POST(request: NextRequest) {
   let requestData
   try {
@@ -66,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Optimización: Usar directamente get en lugar de exists + get
-      shortId = await redis.get(urlKey)
+      shortId = (await redis.get(urlKey)) as string | null
 
       if (shortId) {
         log("URL existente encontrada")
@@ -100,6 +146,8 @@ export async function POST(request: NextRequest) {
         await redis.expire(shortId, ttl)
         // Reiniciar el TTL del índice
         await redis.expire(urlKey, ttl)
+        // Actualizar el índice de URLs
+        await updateUrlIndex(shortId, false)
         log("TTL reinstaurado correctamente")
       } catch (redisError) {
         logError(`Error al reinstaurar TTL:`, redisError)
@@ -125,6 +173,8 @@ export async function POST(request: NextRequest) {
         await redis.set(shortId, normalizedUrl, { ex: ttl })
         // Guardar el índice URL -> ID
         await redis.set(urlKey, shortId, { ex: ttl })
+        // Actualizar el índice de URLs
+        await updateUrlIndex(shortId, true)
         log("Nueva URL guardada con TTL de 24h")
       } catch (redisError) {
         logError(`Error al guardar en Redis:`, redisError)

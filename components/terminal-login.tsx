@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
@@ -14,43 +13,23 @@ export function TerminalLogin({ lang }: TerminalLoginProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [mode, setMode] = useState<"login" | "signup">("login")
   const { toast } = useToast()
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      let result
-
-      if (mode === "login") {
-        result = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-      } else {
-        result = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/${lang}/debug`,
-          },
-        })
-      }
+      const result = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
       if (result.error) {
         throw result.error
       }
 
-      if (mode === "signup" && result.data?.user) {
-        toast({
-          title: lang === "es" ? "Cuenta creada" : "Account created",
-          description:
-            lang === "es" ? "Revisa tu email para confirmar tu cuenta." : "Check your email to confirm your account.",
-          variant: "success",
-        })
-      } else if (result.data?.session) {
+      if (result.data?.session) {
         toast({
           title: lang === "es" ? "Acceso exitoso" : "Login successful",
           description: lang === "es" ? "Bienvenido al panel de administración." : "Welcome to the admin panel.",
@@ -86,21 +65,15 @@ export function TerminalLogin({ lang }: TerminalLoginProps) {
       <div className="mb-4">
         <div className="flex">
           <span className="terminal-prompt no-select">$</span>
-          <span className="terminal-command ml-2 no-select">{mode === "login" ? "./login.sh" : "./signup.sh"}</span>
+          <span className="terminal-command ml-2 no-select">./login.sh</span>
         </div>
       </div>
 
       <h2 className="text-green-400 text-xl font-bold mb-4">
-        {mode === "login"
-          ? lang === "es"
-            ? "# === ACCESO ADMIN ==="
-            : "# === ADMIN ACCESS ==="
-          : lang === "es"
-            ? "# === REGISTRO ADMIN ==="
-            : "# === ADMIN REGISTRATION ==="}
+        {lang === "es" ? "# === ACCESO ADMIN ===" : "# === ADMIN ACCESS ==="}
       </h2>
 
-      <form onSubmit={handleAuth} className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <div className="flex items-center mb-2">
             <span className="terminal-prompt no-select">$</span>
@@ -138,33 +111,14 @@ export function TerminalLogin({ lang }: TerminalLoginProps) {
         </div>
 
         <button type="submit" disabled={isLoading} className="terminal-button w-full">
-          {isLoading
-            ? lang === "es"
-              ? "Procesando..."
-              : "Processing..."
-            : mode === "login"
-              ? lang === "es"
-                ? "Iniciar sesión"
-                : "Login"
-              : lang === "es"
-                ? "Registrarse"
-                : "Sign up"}
+          {isLoading ? (lang === "es" ? "Procesando..." : "Processing...") : lang === "es" ? "Iniciar sesión" : "Login"}
         </button>
       </form>
 
-      <div className="mt-4 text-center">
-        <button
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="text-cyan-400 hover:underline"
-        >
-          {mode === "login"
-            ? lang === "es"
-              ? "¿No tienes cuenta? Regístrate"
-              : "Don't have an account? Sign up"
-            : lang === "es"
-              ? "¿Ya tienes cuenta? Inicia sesión"
-              : "Already have an account? Login"}
-        </button>
+      <div className="mt-6 p-4 bg-black/30 border border-yellow-500/30 rounded">
+        <p className="text-yellow-400 text-center text-sm">
+          {lang === "es" ? "Los usuarios se crean manualmente en Supabase." : "Users are created manually in Supabase."}
+        </p>
       </div>
     </div>
   )

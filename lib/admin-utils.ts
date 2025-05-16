@@ -22,46 +22,35 @@ export type ShortUrl = {
   createdAt: string
 }
 
+// Lista de slugs de ejemplo para desarrollo/fallback
+const SAMPLE_SLUGS = ["abc123", "xyz789", "def456", "ghi789", "jkl012"]
+
 // Función para obtener métricas del sistema
 export async function getSystemMetrics(): Promise<SystemMetrics> {
   try {
-    // Obtener todas las claves que no son estadísticas ni índices
-    const keys = await redis.keys("*")
-    const urlKeys = keys.filter(
-      (key) => !key.startsWith("stats:") && !key.startsWith("url:") && key.length >= 3 && key.length <= 12,
-    )
-
-    // Total de URLs
-    const totalUrls = urlKeys.length
-
-    // Obtener clicks para cada URL
+    // Inicializar contadores
+    let totalUrls = 0
     let totalClicks = 0
-    const clicksPromises = urlKeys.map(async (slug) => {
-      const clicks = await redis.get(`stats:${slug}`)
-      return clicks ? Number.parseInt(clicks, 10) : 0
-    })
+    let lastUrl = null
 
-    const clicksArray = await Promise.all(clicksPromises)
-    totalClicks = clicksArray.reduce((sum, clicks) => sum + clicks, 0)
+    // Obtener URLs usando la función getLatestUrls
+    const urls = await getLatestUrls(100) // Obtener hasta 100 URLs para calcular métricas
+
+    totalUrls = urls.length
+
+    // Calcular total de clicks
+    totalClicks = urls.reduce((sum, url) => sum + url.clicks, 0)
 
     // Calcular promedio de clicks
     const averageClicksPerUrl = totalUrls > 0 ? Math.round((totalClicks / totalUrls) * 100) / 100 : 0
 
-    // Obtener la última URL creada (simulado por ahora)
-    // En un sistema real, necesitaríamos almacenar timestamps
-    let lastUrl = null
-
-    if (urlKeys.length > 0) {
-      // Tomamos la primera URL como ejemplo
-      const slug = urlKeys[0]
-      const originalUrl = await redis.get(slug)
-      const clicks = (await redis.get(`stats:${slug}`)) || "0"
-
+    // Obtener la última URL (la primera de la lista)
+    if (urls.length > 0) {
       lastUrl = {
-        slug,
-        originalUrl: originalUrl || "",
-        createdAt: new Date().toISOString(),
-        clicks: Number.parseInt(clicks, 10),
+        slug: urls[0].slug,
+        originalUrl: urls[0].originalUrl,
+        createdAt: urls[0].createdAt,
+        clicks: urls[0].clicks,
       }
     }
 
@@ -86,21 +75,49 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
 // Función para obtener las últimas URLs
 export async function getLatestUrls(limit = 10): Promise<ShortUrl[]> {
   try {
-    // Obtener todas las claves que no son estadísticas ni índices
-    const keys = await redis.keys("*")
-    const urlKeys = keys
-      .filter((key) => !key.startsWith("stats:") && !key.startsWith("url:") && key.length >= 3 && key.length <= 12)
-      .slice(0, limit)
+    // En lugar de usar keys(), vamos a usar una estrategia alternativa
+    // Primero, intentaremos obtener datos de un índice de URLs si existe
+    const urlIndex = await redis.get("url_index")
+    let slugs: string[] = []
+
+    if (urlIndex) {
+      try {
+        // Si existe un índice, lo parseamos
+        const parsedIndex = JSON.parse(urlIndex as string)
+        if (Array.isArray(parsedIndex)) {
+          slugs = parsedIndex.slice(0, limit)
+        }
+      } catch (parseError) {
+        logger.error("Error al parsear índice de URLs:", parseError)
+      }
+    }
+
+    // Si no hay slugs del índice, usamos una lista de muestra para desarrollo
+    if (slugs.length === 0) {
+      // Intentar obtener algunos slugs conocidos
+      for (const slug of SAMPLE_SLUGS) {
+        const exists = await redis.exists(slug)
+        if (exists) {
+          slugs.push(slug)
+          if (slugs.length >= limit) break
+        }
+      }
+    }
+
+    // Si aún no tenemos slugs, devolvemos un array vacío
+    if (slugs.length === 0) {
+      return []
+    }
 
     // Obtener detalles de cada URL
-    const urlsPromises = urlKeys.map(async (slug) => {
+    const urlsPromises = slugs.map(async (slug) => {
       const originalUrl = await redis.get(slug)
-      const clicks = (await redis.get(`stats:${slug}`)) || "0"
+      const clicks = await redis.get(`stats:${slug}`)
 
       return {
         slug,
         originalUrl: originalUrl || "",
-        clicks: Number.parseInt(clicks, 10),
+        clicks: clicks ? Number.parseInt(clicks as string, 10) : 0,
         createdAt: new Date().toISOString(), // Simulado
       }
     })
@@ -120,12 +137,12 @@ export async function findUrlBySlug(slug: string): Promise<ShortUrl | null> {
     const originalUrl = await redis.get(slug)
     if (!originalUrl) return null
 
-    const clicks = (await redis.get(`stats:${slug}`)) || "0"
+    const clicks = await redis.get(`stats:${slug}`)
 
     return {
       slug,
-      originalUrl,
-      clicks: Number.parseInt(clicks, 10),
+      originalUrl: originalUrl as string,
+      clicks: clicks ? Number.parseInt(clicks as string, 10) : 0,
       createdAt: new Date().toISOString(), // Simulado
     }
   } catch (error) {
@@ -153,6 +170,21 @@ export async function deleteUrl(slug: string): Promise<boolean> {
       // Generar la clave de índice (esto debería coincidir con cómo se genera en utils.ts)
       const urlKey = `url:${originalUrl}`
       await redis.del(urlKey)
+
+      // Actualizar el índice de URLs si existe
+      try {
+        const urlIndex = await redis.get("url_index")
+        if (urlIndex) {
+          const parsedIndex = JSON.parse(urlIndex as string)
+          if (Array.isArray(parsedIndex)) {
+            const newIndex = parsedIndex.filter((s) => s !== slug)
+            await redis.set("url_index", JSON.stringify(newIndex))
+          }
+        }
+      } catch (indexError) {
+        logger.warn("Error al actualizar índice de URLs:", indexError)
+        // No bloqueamos la eliminación por este error
+      }
     }
 
     return true

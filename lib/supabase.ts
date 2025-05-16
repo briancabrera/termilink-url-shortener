@@ -31,15 +31,7 @@ export type UserSession = {
   user: {
     id: string
     email?: string
-    role?: string
   } | null
   session: any | null
   isLoading: boolean
-}
-
-// Función para verificar si un usuario es administrador
-export const isAdmin = (user: any) => {
-  // Verificar si el usuario tiene el rol de administrador
-  // Esto dependerá de cómo hayas configurado los roles en Supabase
-  return user?.role === "admin" || user?.email?.endsWith("@admin.com")
 }

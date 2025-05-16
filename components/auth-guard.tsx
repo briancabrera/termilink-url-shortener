@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
-import { supabase, type UserSession, isAdmin } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -13,11 +12,8 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, lang }: AuthGuardProps) {
-  const [session, setSession] = useState<UserSession>({
-    user: null,
-    session: null,
-    isLoading: true,
-  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -32,19 +28,11 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
         }
 
         if (data?.session) {
-          // Obtener datos del usuario
-          const { data: userData } = await supabase.auth.getUser()
-          setSession({
-            user: userData.user,
-            session: data.session,
-            isLoading: false,
-          })
+          setIsAuthenticated(true)
+          setIsLoading(false)
         } else {
-          setSession({
-            user: null,
-            session: null,
-            isLoading: false,
-          })
+          setIsAuthenticated(false)
+          setIsLoading(false)
           // Redirigir al login si no hay sesión
           router.push(`/${lang}/debug/login`)
         }
@@ -56,11 +44,8 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
             error.message || (lang === "es" ? "No se pudo verificar tu sesión." : "Could not verify your session."),
           variant: "destructive",
         })
-        setSession({
-          user: null,
-          session: null,
-          isLoading: false,
-        })
+        setIsAuthenticated(false)
+        setIsLoading(false)
         router.push(`/${lang}/debug/login`)
       }
     }
@@ -70,18 +55,11 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
     // Suscribirse a cambios en la autenticación
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        const { data: userData } = await supabase.auth.getUser()
-        setSession({
-          user: userData.user,
-          session,
-          isLoading: false,
-        })
+        setIsAuthenticated(true)
+        setIsLoading(false)
       } else if (event === "SIGNED_OUT") {
-        setSession({
-          user: null,
-          session: null,
-          isLoading: false,
-        })
+        setIsAuthenticated(false)
+        setIsLoading(false)
         router.push(`/${lang}/debug/login`)
       }
     })
@@ -92,7 +70,7 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
   }, [router, toast, lang])
 
   // Mostrar un loader mientras se verifica la autenticación
-  if (session.isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-black">
         <div className="terminal-container w-full max-w-md">
@@ -130,51 +108,11 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
     )
   }
 
-  // Si no hay usuario, no renderizar nada (ya se redirigió al login)
-  if (!session.user) {
+  // Si no está autenticado, no renderizar nada (ya se redirigió al login)
+  if (!isAuthenticated) {
     return null
   }
 
-  // Verificar si el usuario es administrador
-  if (!isAdmin(session.user)) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-black">
-        <div className="terminal-container w-full max-w-md">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex space-x-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            </div>
-            <div className="text-xs text-gray-400">error.sh</div>
-          </div>
-
-          <div className="mb-4">
-            <div className="flex">
-              <span className="terminal-prompt">$</span>
-              <span className="terminal-command ml-2">sudo access</span>
-            </div>
-          </div>
-
-          <div className="p-4 bg-black/30 border border-red-500/30 rounded mb-6">
-            <h2 className="text-red-500 text-xl font-bold mb-2">
-              {lang === "es" ? "Acceso denegado" : "Access denied"}
-            </h2>
-            <p className="text-gray-300">
-              {lang === "es"
-                ? "No tienes permisos de administrador para acceder a esta sección."
-                : "You don't have administrator permissions to access this section."}
-            </p>
-          </div>
-
-          <button onClick={() => supabase.auth.signOut()} className="terminal-button w-full">
-            {lang === "es" ? "Cerrar sesión" : "Sign out"}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Si el usuario está autenticado y es admin, mostrar el contenido
+  // Si el usuario está autenticado, mostrar el contenido
   return <>{children}</>
 }
