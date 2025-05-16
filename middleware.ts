@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { match } from "@formatjs/intl-localematcher"
 import Negotiator from "negotiator"
-import { createServerClient } from "@supabase/ssr"
 
 // Idiomas soportados
 export const locales = ["es", "en"]
@@ -27,86 +26,10 @@ export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname
 
-    // Imprimir todas las cookies para depuración
-    console.log(
-      "Middleware: Todas las cookies:",
-      Array.from(request.cookies.getAll()).map((c) => `${c.name}=${c.value.substring(0, 15)}...`),
-    )
-
-    // Verificar si es una ruta protegida que requiere autenticación
-    // Excluir la ruta de login
-    if (pathname.includes("/dashboard") && !pathname.includes("/login")) {
-      try {
-        console.log("Middleware: Verificando sesión para ruta protegida:", pathname)
-
-        // Verificar si hay cookies de sesión de Supabase
-        const hasSupabaseCookies =
-          request.cookies.has("sb-access-token") ||
-          request.cookies.has("sb-refresh-token") ||
-          request.cookies.has("supabase-auth-token")
-
-        console.log("Middleware: ¿Tiene cookies de Supabase?", hasSupabaseCookies)
-
-        // Si no hay cookies de Supabase, redirigir al login
-        if (!hasSupabaseCookies) {
-          console.log("Middleware: No se encontraron cookies de Supabase, redirigiendo a login")
-          const locale = getLocale(request)
-          const url = request.nextUrl.clone()
-          url.pathname = `/${locale}/login`
-          return NextResponse.redirect(url)
-        }
-
-        // Crear cliente de Supabase
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get(name: string) {
-                const cookie = request.cookies.get(name)
-                console.log(`Middleware: Leyendo cookie ${name}:`, cookie ? "encontrada" : "no encontrada")
-                return cookie?.value
-              },
-            },
-          },
-        )
-
-        // Verificar sesión
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-
-        if (error) {
-          console.error("Middleware: Error al verificar sesión:", error.message)
-        }
-
-        console.log("Middleware: Resultado de verificación de sesión:", session ? "Sesión válida" : "Sin sesión")
-
-        // Si no hay sesión, redirigir al login con el idioma correcto
-        if (!session) {
-          console.log("Middleware: Redirigiendo a login debido a falta de sesión")
-
-          // IMPORTANTE: Para depuración, permitimos el acceso al dashboard aunque no haya sesión
-          // Esto es temporal para identificar el problema
-          console.log("Middleware: MODO DEPURACIÓN - Permitiendo acceso al dashboard sin sesión")
-          return NextResponse.next()
-
-          // Código original:
-          // const locale = getLocale(request)
-          // const url = request.nextUrl.clone()
-          // url.pathname = `/${locale}/login`
-          // return NextResponse.redirect(url)
-        }
-
-        console.log("Middleware: Session found, allowing access to dashboard")
-      } catch (error) {
-        console.error("Middleware: Error checking session:", error)
-
-        // En modo depuración, permitimos el acceso aunque haya error
-        console.log("Middleware: MODO DEPURACIÓN - Permitiendo acceso al dashboard tras error")
-        return NextResponse.next()
-      }
+    // Siempre redirigir a login cuando se intente acceder a admin
+    if (pathname.includes("/admin") && !pathname.includes("/admin/login")) {
+      console.log("Middleware: Redirigiendo a login (siempre se requiere login)")
+      return NextResponse.redirect(new URL("/admin/login", request.url))
     }
 
     // Redirigir la raíz a la página con el idioma por defecto
