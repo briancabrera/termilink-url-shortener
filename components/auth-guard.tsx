@@ -57,6 +57,8 @@ export function AuthGuard({ children, lang }: AuthGuardProps) {
       if (event === "SIGNED_IN" && session) {
         setIsAuthenticated(true)
         setIsLoading(false)
+        // Asegurarse de que la página se recargue para mostrar el contenido correcto
+        router.refresh()
       } else if (event === "SIGNED_OUT") {
         setIsAuthenticated(false)
         setIsLoading(false)

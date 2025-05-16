@@ -4,16 +4,18 @@ import type React from "react"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 interface TerminalLoginProps {
-  lang: string
+  lang?: string
 }
 
-export function TerminalLogin({ lang }: TerminalLoginProps) {
+export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,8 +37,9 @@ export function TerminalLogin({ lang }: TerminalLoginProps) {
           description: lang === "es" ? "Bienvenido al panel de administración." : "Welcome to the admin panel.",
           variant: "success",
         })
-        // Redirigir al dashboard después de un login exitoso
-        window.location.href = `/${lang}/debug`
+
+        // Usar router.push en lugar de window.location para una navegación más limpia
+        router.push(`/${lang}/debug`)
       }
     } catch (error: any) {
       toast({

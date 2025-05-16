@@ -18,7 +18,18 @@ let supabaseInstance: ReturnType<typeof createClient> | null = null
 
 export const getSupabaseClient = () => {
   if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Configurar para que la sesión se almacene solo en memoria
+        // y no persista cuando se cierra la página
+        persistSession: false,
+        // Usar localStorage en lugar de cookies para evitar problemas de CORS
+        storageKey: "termilink_auth",
+        // Establecer un tiempo de expiración corto para la sesión
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
   }
   return supabaseInstance
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { dictionary as enDictionary } from "@/dictionaries/en"
 import { dictionary as esDictionary } from "@/dictionaries/es"
 import { LanguageSwitcher } from "@/components/language-switcher"
@@ -30,6 +31,7 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
   const [isSearching, setIsSearching] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     // Cargar el diccionario directamente sin usar getDictionary
@@ -263,8 +265,26 @@ export default function DebugPage({ params }: { params: { lang: string } }) {
 
   // Función para cerrar sesión
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.href = `/${params.lang}`
+    setIsLoading(true)
+    try {
+      await supabase.auth.signOut()
+      toast({
+        title: params.lang === "es" ? "Sesión cerrada" : "Signed out",
+        description:
+          params.lang === "es" ? "Has cerrado sesión correctamente." : "You have been signed out successfully.",
+        variant: "success",
+      })
+      router.push(`/${params.lang}`)
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      toast({
+        title: params.lang === "es" ? "Error" : "Error",
+        description: params.lang === "es" ? "No se pudo cerrar la sesión." : "Could not sign out.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!dictionary) return null
