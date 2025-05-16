@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { match } from "@formatjs/intl-localematcher"
 import Negotiator from "negotiator"
+import { createServerClient } from "@supabase/ssr"
 
 // Idiomas soportados
 export const locales = ["es", "en"]
@@ -22,9 +23,37 @@ function getLocale(request: NextRequest): string {
   }
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname
+
+    // Verificar si es una ruta de administración
+    if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+      // Crear cliente de Supabase
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return request.cookies.get(name)?.value
+            },
+          },
+        },
+      )
+
+      // Verificar sesión
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      // Si no hay sesión, redirigir al login
+      if (!session) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/admin/login"
+        return NextResponse.redirect(url)
+      }
+    }
 
     // Redirigir la raíz a la página con el idioma por defecto
     if (pathname === "/") {
@@ -37,7 +66,8 @@ export function middleware(request: NextRequest) {
       pathname.startsWith("/api/") ||
       pathname.startsWith("/_next/") ||
       pathname.startsWith("/favicon") ||
-      pathname.startsWith("/go/")
+      pathname.startsWith("/go/") ||
+      pathname.startsWith("/admin/")
     ) {
       return NextResponse.next()
     }
