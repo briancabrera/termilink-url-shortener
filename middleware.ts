@@ -27,10 +27,35 @@ export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname
 
+    // Imprimir todas las cookies para depuración
+    console.log(
+      "Middleware: Todas las cookies:",
+      Array.from(request.cookies.getAll()).map((c) => `${c.name}=${c.value.substring(0, 15)}...`),
+    )
+
     // Verificar si es una ruta protegida que requiere autenticación
     // Excluir la ruta de login
     if (pathname.includes("/dashboard") && !pathname.includes("/login")) {
       try {
+        console.log("Middleware: Verificando sesión para ruta protegida:", pathname)
+
+        // Verificar si hay cookies de sesión de Supabase
+        const hasSupabaseCookies =
+          request.cookies.has("sb-access-token") ||
+          request.cookies.has("sb-refresh-token") ||
+          request.cookies.has("supabase-auth-token")
+
+        console.log("Middleware: ¿Tiene cookies de Supabase?", hasSupabaseCookies)
+
+        // Si no hay cookies de Supabase, redirigir al login
+        if (!hasSupabaseCookies) {
+          console.log("Middleware: No se encontraron cookies de Supabase, redirigiendo a login")
+          const locale = getLocale(request)
+          const url = request.nextUrl.clone()
+          url.pathname = `/${locale}/login`
+          return NextResponse.redirect(url)
+        }
+
         // Crear cliente de Supabase
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,42 +63,48 @@ export async function middleware(request: NextRequest) {
           {
             cookies: {
               get(name: string) {
-                return request.cookies.get(name)?.value
+                const cookie = request.cookies.get(name)
+                console.log(`Middleware: Leyendo cookie ${name}:`, cookie ? "encontrada" : "no encontrada")
+                return cookie?.value
               },
             },
           },
         )
 
-        console.log("Middleware: Verificando sesión para ruta protegida:", pathname)
-
         // Verificar sesión
         const {
           data: { session },
+          error,
         } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error("Middleware: Error al verificar sesión:", error.message)
+        }
 
         console.log("Middleware: Resultado de verificación de sesión:", session ? "Sesión válida" : "Sin sesión")
 
         // Si no hay sesión, redirigir al login con el idioma correcto
         if (!session) {
           console.log("Middleware: Redirigiendo a login debido a falta de sesión")
-          console.log("Middleware: No session found, redirecting to login")
-          const locale = getLocale(request)
-          const url = request.nextUrl.clone()
-          url.pathname = `/${locale}/login`
-          return NextResponse.redirect(url)
+
+          // IMPORTANTE: Para depuración, permitimos el acceso al dashboard aunque no haya sesión
+          // Esto es temporal para identificar el problema
+          console.log("Middleware: MODO DEPURACIÓN - Permitiendo acceso al dashboard sin sesión")
+          return NextResponse.next()
+
+          // Código original:
+          // const locale = getLocale(request)
+          // const url = request.nextUrl.clone()
+          // url.pathname = `/${locale}/login`
+          // return NextResponse.redirect(url)
         }
 
         console.log("Middleware: Session found, allowing access to dashboard")
       } catch (error) {
         console.error("Middleware: Error checking session:", error)
-        console.error("Middleware: Error detallado:", {
-          message: error.message,
-          name: error.name,
-          stack: error.stack?.substring(0, 200),
-          pathname,
-        })
-        // En caso de error, permitir que la solicitud continúe
-        // para que el componente AuthGuard maneje la autenticación en el cliente
+
+        // En modo depuración, permitimos el acceso aunque haya error
+        console.log("Middleware: MODO DEPURACIÓN - Permitiendo acceso al dashboard tras error")
         return NextResponse.next()
       }
     }

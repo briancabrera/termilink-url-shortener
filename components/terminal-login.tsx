@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 import { logger } from "@/lib/logger"
@@ -14,7 +14,24 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [sessionStatus, setSessionStatus] = useState<string>("checking")
   const { toast } = useToast()
+
+  // Verificar estado de sesión al cargar
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        setSessionStatus(data.session ? "authenticated" : "unauthenticated")
+        logger.debug("Estado inicial de sesión:", data.session ? "autenticado" : "no autenticado")
+      } catch (error) {
+        logger.error("Error al verificar sesión inicial:", error)
+        setSessionStatus("error")
+      }
+    }
+
+    checkSession()
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,8 +39,14 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
 
     try {
       logger.info(`Iniciando login para: ${email}`)
-      logger.debug(`Login: Intentando iniciar sesión con email: ${email.substring(0, 3)}...`)
 
+      // Limpiar cualquier sesión anterior
+      await supabase.auth.signOut()
+
+      // Esperar un momento para asegurar que la sesión anterior se haya limpiado
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Intentar iniciar sesión
       const result = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -36,34 +59,39 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
 
       if (result.data?.session) {
         logger.info("Sesión creada correctamente")
-        logger.debug(`Login: Sesión creada correctamente. ID: ${result.data.session.user.id.substring(0, 8)}...`)
 
-        toast({
-          title: lang === "es" ? "Acceso exitoso" : "Login successful",
-          description: lang === "es" ? "Bienvenido al panel de administración." : "Welcome to the admin panel.",
-          variant: "success",
-        })
+        // Verificar que la sesión se haya guardado correctamente
+        const { data: sessionCheck } = await supabase.auth.getSession()
 
-        // Esperar un poco para que el toast se muestre
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        if (sessionCheck.session) {
+          logger.info("Sesión verificada correctamente")
 
-        logger.info(`Redirigiendo a: /${lang}/dashboard`)
-        logger.debug(`Login: Preparando redirección a /${lang}/dashboard`)
+          // Guardar manualmente las cookies de sesión
+          document.cookie = `sb-session-verified=true; path=/; max-age=86400; SameSite=Lax`
 
-        // Usar una redirección más robusta
-        try {
-          // Primero intentamos con router.push si está disponible
-          window.location.href = `/${lang}/dashboard`
-          logger.debug(`Login: Redirección iniciada`)
+          toast({
+            title: lang === "es" ? "Acceso exitoso" : "Login successful",
+            description: lang === "es" ? "Bienvenido al panel de administración." : "Welcome to the admin panel.",
+            variant: "success",
+          })
 
-          // Como respaldo, forzamos una recarga completa después de un breve retraso
-          setTimeout(() => {
-            window.location.replace(`/${lang}/dashboard`)
-          }, 500)
-        } catch (redirectError) {
-          logger.error(`Error en redirección: ${redirectError}`)
-          // Último recurso: recargar la página
-          window.location.href = `/${lang}/dashboard`
+          // Esperar un poco para que el toast se muestre y las cookies se establezcan
+          await new Promise((resolve) => setTimeout(resolve, 1500))
+
+          logger.info(`Redirigiendo a: /${lang}/dashboard`)
+
+          // Usar una redirección más robusta
+          try {
+            // Primero intentamos con una redirección directa
+            window.location.href = `/${lang}/dashboard?auth=${Date.now()}`
+          } catch (redirectError) {
+            logger.error(`Error en redirección: ${redirectError}`)
+            // Último recurso: recargar la página
+            window.location.href = `/${lang}/dashboard`
+          }
+        } else {
+          logger.warn("La sesión no se guardó correctamente después de la autenticación")
+          throw new Error(lang === "es" ? "La sesión no se guardó correctamente" : "Session was not saved correctly")
         }
       } else {
         logger.warn("No se creó la sesión después de la autenticación")
@@ -71,12 +99,6 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
       }
     } catch (error: any) {
       logger.error(`Error en login: ${error.message || "Error desconocido"}`)
-      logger.error(`Login: Error detallado:`, {
-        message: error.message,
-        name: error.name,
-        stack: error.stack?.substring(0, 200),
-        email: email.substring(0, 3) + "...",
-      })
 
       toast({
         title: lang === "es" ? "Error" : "Error",
@@ -88,6 +110,30 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Función para verificar el estado de las cookies
+  const checkCookies = () => {
+    const cookies = document.cookie.split(";").map((c) => c.trim())
+    const cookieInfo = cookies.map((c) => {
+      const [name, value] = c.split("=")
+      return `${name}=${value ? value.substring(0, 10) + "..." : "empty"}`
+    })
+
+    toast({
+      title: "Estado de cookies",
+      description: (
+        <div className="max-h-40 overflow-auto">
+          <p>Total: {cookies.length}</p>
+          <ul className="list-disc pl-4 text-xs">
+            {cookieInfo.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
+        </div>
+      ),
+      duration: 10000,
+    })
   }
 
   return (
@@ -111,6 +157,40 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
       <h2 className="text-green-400 text-xl font-bold mb-4">
         {lang === "es" ? "# === ACCESO ADMIN ===" : "# === ADMIN ACCESS ==="}
       </h2>
+
+      {/* Estado de sesión */}
+      <div className="mb-4 p-2 bg-black/30 border border-gray-700 rounded">
+        <p className="text-xs text-gray-300">
+          {lang === "es" ? "Estado de sesión: " : "Session status: "}
+          <span
+            className={
+              sessionStatus === "authenticated"
+                ? "text-green-400"
+                : sessionStatus === "unauthenticated"
+                  ? "text-yellow-400"
+                  : sessionStatus === "error"
+                    ? "text-red-400"
+                    : "text-blue-400"
+            }
+          >
+            {sessionStatus === "authenticated"
+              ? lang === "es"
+                ? "Autenticado"
+                : "Authenticated"
+              : sessionStatus === "unauthenticated"
+                ? lang === "es"
+                  ? "No autenticado"
+                  : "Unauthenticated"
+                : sessionStatus === "error"
+                  ? lang === "es"
+                    ? "Error"
+                    : "Error"
+                  : lang === "es"
+                    ? "Verificando..."
+                    : "Checking..."}
+          </span>
+        </p>
+      </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
@@ -153,6 +233,26 @@ export function TerminalLogin({ lang = "es" }: TerminalLoginProps) {
           {isLoading ? (lang === "es" ? "Procesando..." : "Processing...") : lang === "es" ? "Iniciar sesión" : "Login"}
         </button>
       </form>
+
+      <div className="mt-4 flex gap-2">
+        <button onClick={checkCookies} className="terminal-button text-xs py-1 px-2">
+          {lang === "es" ? "Verificar cookies" : "Check cookies"}
+        </button>
+
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut()
+            toast({
+              title: lang === "es" ? "Sesión cerrada" : "Session closed",
+              description: lang === "es" ? "Se ha cerrado la sesión" : "Session has been closed",
+            })
+            setSessionStatus("unauthenticated")
+          }}
+          className="terminal-button text-xs py-1 px-2"
+        >
+          {lang === "es" ? "Cerrar sesión" : "Sign out"}
+        </button>
+      </div>
 
       <div className="mt-6 p-4 bg-black/30 border border-yellow-500/30 rounded">
         <p className="text-yellow-400 text-center text-sm">

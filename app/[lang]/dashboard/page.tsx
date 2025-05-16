@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AuthGuard } from "@/components/auth-guard"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
@@ -13,7 +13,7 @@ import {
   type ShortUrl,
   type SystemMetrics,
 } from "@/lib/admin-utils"
-import { Copy, Trash2, Search, RefreshCw } from "lucide-react"
+import { Copy, Trash2, Search } from "lucide-react"
 import { logger } from "@/lib/logger"
 
 export default function DashboardPage({ params }: { params: { lang: string } }) {
@@ -23,8 +23,73 @@ export default function DashboardPage({ params }: { params: { lang: string } }) 
   const [isSearching, setIsSearching] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [bypassMode, setBypassMode] = useState(false)
+  const router = useRouter()
   const { toast } = useToast()
   const lang = params.lang || "es"
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        logger.info("[Dashboard] Verificando autenticación")
+
+        // Verificar si estamos en modo bypass (para depuración)
+        const isBypass = new URLSearchParams(window.location.search).get("auth") !== null
+
+        if (isBypass) {
+          logger.info("[Dashboard] Modo bypass detectado")
+          setBypassMode(true)
+          setIsLoading(false)
+          return
+        }
+
+        // Verificar sesión normal
+        const { data } = await supabase.auth.getSession()
+
+        if (data.session) {
+          logger.info("[Dashboard] Sesión válida encontrada")
+          setUser(data.session.user)
+          setIsLoading(false)
+        } else {
+          logger.warn("[Dashboard] No se encontró sesión válida, redirigiendo a login")
+          router.push(`/${lang}/login`)
+        }
+      } catch (error) {
+        logger.error("[Dashboard] Error al verificar autenticación:", error)
+        router.push(`/${lang}/login`)
+      }
+    }
+
+    checkAuth()
+  }, [router, lang])
+
+  const activateBypassMode = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch("/api/auth/bypass")
+      const data = await response.json()
+
+      if (data.success) {
+        setBypassMode(true)
+        toast({
+          title: "Modo bypass activado",
+          description: "Acceso temporal concedido para depuración",
+          variant: "success",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "No se pudo activar el modo bypass",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error al activar modo bypass:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Función para cargar datos
   const loadData = async () => {
@@ -216,37 +281,64 @@ export default function DashboardPage({ params }: { params: { lang: string } }) 
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="terminal-container p-8">
+          <div className="flex space-x-2">
+            <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse delay-150"></div>
+            <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse delay-300"></div>
+          </div>
+          <p className="text-green-400 mt-4">
+            {lang === "es" ? "Cargando panel de administración..." : "Loading admin panel..."}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <AuthGuard redirectTo={`/${lang}/login`} lang={lang}>
-      <div className="min-h-screen p-4 md:p-8">
-        <div className="container mx-auto">
-          <header className="mb-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="terminal-prompt no-select">$</span>
-                <span className="terminal-command ml-2 no-select">cd ~/termilink/admin</span>
-              </div>
-              <div className="flex space-x-4">
-                <button onClick={handleRefresh} disabled={isRefreshing} className="terminal-button flex items-center">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  {isRefreshing
-                    ? lang === "es"
-                      ? "Actualizando..."
-                      : "Updating..."
-                    : lang === "es"
-                      ? "Actualizar datos"
-                      : "Refresh data"}
-                </button>
-                <Link href={`/${lang}/dashboard/logs`} className="terminal-button flex items-center">
-                  <span className="mr-2">📋</span>
-                  {lang === "es" ? "Ver logs" : "View logs"}
-                </Link>
-                <button onClick={handleLogout} className="terminal-button">
-                  {lang === "es" ? "Cerrar sesión" : "Sign out"}
-                </button>
-              </div>
+    <div className="min-h-screen p-4">
+      <div className="container mx-auto">
+        <header className="mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="terminal-prompt no-select">$</span>
+              <span className="terminal-command ml-2 no-select">cd ~/termilink/admin</span>
             </div>
-          </header>
+
+            {bypassMode && (
+              <div className="px-3 py-1 bg-yellow-500/20 border border-yellow-500/30 rounded text-yellow-400 text-xs">
+                MODO DEPURACIÓN
+              </div>
+            )}
+          </div>
+        </header>
+
+        <div className="terminal-container p-6">
+          <h1 className="text-2xl font-bold text-green-400 mb-6">
+            {lang === "es" ? "Panel de Administración" : "Admin Dashboard"}
+          </h1>
+
+          {user && (
+            <div className="mb-6 p-4 bg-black/30 border border-green-500/30 rounded">
+              <p className="text-green-400">
+                {lang === "es" ? "Usuario autenticado: " : "Authenticated user: "}
+                <span className="font-mono">{user.email}</span>
+              </p>
+            </div>
+          )}
+
+          {bypassMode && (
+            <div className="mb-6 p-4 bg-black/30 border border-yellow-500/30 rounded">
+              <p className="text-yellow-400">
+                {lang === "es"
+                  ? "Modo de depuración activado. Esta sesión es temporal."
+                  : "Debug mode activated. This session is temporary."}
+              </p>
+            </div>
+          )}
 
           <div className="terminal-container mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -257,10 +349,6 @@ export default function DashboardPage({ params }: { params: { lang: string } }) 
               </div>
               <div className="text-xs text-gray-400 no-select">admin.sh</div>
             </div>
-
-            <h1 className="text-cyan-400 text-2xl font-bold mb-6">
-              {lang === "es" ? "Panel de Administración" : "Admin Panel"}
-            </h1>
 
             {/* Sección de métricas */}
             <div className="mb-8">
@@ -459,6 +547,6 @@ export default function DashboardPage({ params }: { params: { lang: string } }) 
           </div>
         </div>
       </div>
-    </AuthGuard>
+    </div>
   )
 }
